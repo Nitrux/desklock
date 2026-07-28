@@ -1,0 +1,12 @@
+<!DOCTYPE RCC>
+<RCC>
+    <qresource prefix="/resources">
+        <file>qml/main.qml</file>
+    </qresource>
+    <qresource prefix="/icons">
+        <file alias="user-avatar.svg">icons/user-avatar.svg</file>
+    </qresource>
+    <qresource prefix="/defaults">
+        <file alias="desklock.conf">desklock.conf</file>
+    </qresource>
+</RCC>
