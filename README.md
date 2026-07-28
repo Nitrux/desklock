@@ -9,7 +9,7 @@ Desklock is a modern, lightweight lock screen designed for Nitrux. Built with **
 Desklock runs natively on Wayland compositors such as Hyprland or Sway.
 
 > [!WARNING]
-> QMLGreet does not support X11. QMLGreet's main target is Nitrux OS, and using it in other distributions is not within its scope. Please do not open issues regarding this use case; they will be closed.
+> Desklock does not support X11. Desklock's main target is Nitrux OS, and using it in other distributions is not within its scope. Please do not open issues regarding this use case; they will be closed.
 
 ## Features
 
