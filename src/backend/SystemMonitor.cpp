@@ -1,8 +1,10 @@
 #include "SystemMonitor.h"
 
+#include <QDebug>
 #include <QFile>
 #include <QHash>
 #include <QLocale>
+#include <QProcess>
 #include <QRegularExpression>
 #include <QTextStream>
 
@@ -33,7 +35,7 @@ QString SystemMonitor::summary() const
 {
     const QLocale locale;
     const QString cpu = locale.toString(m_cpuUsage, 'f', 0);
-    const QString ram = locale.toString(m_memoryUsage, 'f', 0);
+    const QString ram = locale.toString(m_memoryUsage);
     if (!online()) {
         return tr("💻 CPU %1%  |  🧠 RAM %2%  |  🌐 Offline").arg(cpu, ram);
     }
@@ -87,27 +89,86 @@ void SystemMonitor::readCpu()
 
 void SystemMonitor::readMemory()
 {
+    QProcess process;
+    process.start(QStringLiteral("free"));
+    if (process.waitForStarted(1000)
+        && process.waitForFinished(1000)
+        && process.exitStatus() == QProcess::NormalExit
+        && process.exitCode() == 0) {
+        const QString output = QString::fromLocal8Bit(process.readAllStandardOutput());
+        const QStringList lines =
+            output.split(QLatin1Char('\n'), Qt::SkipEmptyParts);
+        for (const QString &line : lines) {
+            if (!line.startsWith(QStringLiteral("Mem:"))) {
+                continue;
+            }
+
+            const QStringList fields = line.split(
+                QRegularExpression(QStringLiteral(R"(\s+)")),
+                Qt::SkipEmptyParts);
+            if (fields.size() >= 3) {
+                bool totalValid = false;
+                bool usedValid = false;
+                const double total = fields.at(1).toDouble(&totalValid);
+                const double used = fields.at(2).toDouble(&usedValid);
+                if (totalValid && usedValid && total > 0.0) {
+                    const int percentage =
+                        qBound(0, qRound((used / total) * 100.0), 100);
+                    if (m_memoryUsage != percentage) {
+                        m_memoryUsage = percentage;
+                        emit memoryUsageChanged(m_memoryUsage);
+                    }
+                    return;
+                }
+            }
+            break;
+        }
+    }
+
     QFile file(QStringLiteral("/proc/meminfo"));
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        qWarning() << "Unable to read /proc/meminfo:" << file.errorString();
         return;
     }
 
     quint64 total = 0;
     quint64 available = 0;
     while (!file.atEnd()) {
-        const QList<QByteArray> fields = file.readLine().simplified().split(' ');
-        if (fields.size() < 2) {
+        const QByteArray line = file.readLine();
+        const qsizetype separator = line.indexOf(':');
+        if (separator < 0) {
             continue;
         }
-        if (fields[0] == "MemTotal:") {
-            total = fields[1].toULongLong();
-        } else if (fields[0] == "MemAvailable:") {
-            available = fields[1].toULongLong();
+
+        const QByteArray key = line.left(separator).trimmed();
+        const QByteArray valueField =
+            line.mid(separator + 1).trimmed().split(' ').value(0);
+        bool valid = false;
+        const quint64 value = valueField.toULongLong(&valid);
+        if (!valid) {
+            continue;
+        }
+
+        if (key == "MemTotal") {
+            total = value;
+        } else if (key == "MemAvailable") {
+            available = value;
         }
     }
-    if (total > 0) {
-        m_memoryUsage = 100.0 * static_cast<double>(total - qMin(total, available))
-            / static_cast<double>(total);
+
+    if (total == 0 || available == 0) {
+        qWarning("Unable to determine memory usage");
+        return;
+    }
+
+    const quint64 used = total - qMin(total, available);
+    const int percentage = qBound(
+        0,
+        qRound(100.0 * static_cast<double>(used) / static_cast<double>(total)),
+        100);
+    if (m_memoryUsage != percentage) {
+        m_memoryUsage = percentage;
+        emit memoryUsageChanged(m_memoryUsage);
     }
 }
 

@@ -623,9 +623,7 @@ Item {
                             checkable: false
                             autoExclusive: false
                             expanded: true
-                            flat: true
                             display: ToolButton.IconOnly
-                            spacing: 0
 
                             Action {
                                 text: qsTr("Previous")
