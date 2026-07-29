@@ -36,6 +36,7 @@ $APT_COMMAND install -y --no-install-recommends \
     git \
     gnupg2 \
     libkf6i18n-dev \
+    libpam0g-dev \
     libwayland-dev \
     lintian \
     meson \
