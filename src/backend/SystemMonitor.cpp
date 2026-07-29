@@ -10,12 +10,38 @@
 
 SystemMonitor::SystemMonitor(int updateInterval, bool enabled, QObject *parent)
     : QObject(parent)
-    , m_updateInterval(qMax(1000, updateInterval))
 {
-    if (enabled) {
-        connect(&m_timer, &QTimer::timeout, this, &SystemMonitor::refresh);
+    connect(&m_timer, &QTimer::timeout, this, &SystemMonitor::refresh);
+    setUpdateInterval(updateInterval);
+    setEnabled(enabled);
+}
+
+void SystemMonitor::setEnabled(bool enabled)
+{
+    if (m_enabled == enabled) {
+        return;
+    }
+
+    m_enabled = enabled;
+    if (m_enabled) {
         refresh();
-        m_timer.start(m_updateInterval);
+        m_timer.start();
+    } else {
+        m_timer.stop();
+    }
+}
+
+void SystemMonitor::setUpdateInterval(int updateInterval)
+{
+    const int interval = qMax(1000, updateInterval);
+    if (m_updateInterval == interval) {
+        return;
+    }
+
+    m_updateInterval = interval;
+    m_timer.setInterval(m_updateInterval);
+    if (m_enabled) {
+        m_timer.start();
     }
 }
 

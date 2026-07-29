@@ -42,6 +42,7 @@ public:
     Q_INVOKABLE void playPause();
     Q_INVOKABLE void next();
     Q_INVOKABLE void previous();
+    void setEnabled(bool enabled);
 
 signals:
     void changed();
@@ -76,4 +77,5 @@ private:
     bool m_canGoNext = false;
     bool m_canGoPrevious = false;
     bool m_canControl = false;
+    bool m_enabled = false;
 };

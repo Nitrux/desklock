@@ -14,6 +14,8 @@ public:
 
     QString info() const { return m_info; }
     bool available() const { return m_available; }
+    void setEnabled(bool enabled);
+    void setUpdateInterval(int updateInterval);
 
 signals:
     void changed();
@@ -24,4 +26,6 @@ private:
     QTimer m_timer;
     QString m_info;
     bool m_available = false;
+    bool m_enabled = false;
+    int m_updateInterval = 0;
 };

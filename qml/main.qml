@@ -146,7 +146,6 @@ Item {
                 var dateFmt = (typeof DateFormat !== "undefined" && DateFormat) ? DateFormat : Qt.DefaultLocaleLongDate
                 var formattedDate = Qt.formatDateTime(now, dateFmt) || ""
 
-                var formattedDate = now.toLocaleDateString(Qt.locale(), Locale.LongFormat)
                 dateText = LowercaseDate ? formattedDate.toLowerCase() : formattedDate
             }
 

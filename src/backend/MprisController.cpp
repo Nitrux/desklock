@@ -60,9 +60,6 @@ QString formattedTime(qint64 microseconds)
 MprisController::MprisController(bool enabled, QObject *parent)
     : QObject(parent)
 {
-    if (!enabled) {
-        return;
-    }
     m_positionTimer.setInterval(1000);
     connect(&m_positionTimer, &QTimer::timeout, this, [this]() {
         if (!playing()) {
@@ -77,14 +74,35 @@ MprisController::MprisController(bool enabled, QObject *parent)
         m_positionUs = boundedPosition;
         emit changed();
     });
-    QDBusConnection::sessionBus().connect(
-        QStringLiteral("org.freedesktop.DBus"),
-        QStringLiteral("/org/freedesktop/DBus"),
-        QStringLiteral("org.freedesktop.DBus"),
-        QStringLiteral("NameOwnerChanged"),
-        this,
-        SLOT(serviceOwnerChanged(QString,QString,QString)));
-    QTimer::singleShot(0, this, &MprisController::refreshPlayers);
+    setEnabled(enabled);
+}
+
+void MprisController::setEnabled(bool enabled)
+{
+    if (m_enabled == enabled) {
+        return;
+    }
+
+    m_enabled = enabled;
+    if (m_enabled) {
+        QDBusConnection::sessionBus().connect(
+            QStringLiteral("org.freedesktop.DBus"),
+            QStringLiteral("/org/freedesktop/DBus"),
+            QStringLiteral("org.freedesktop.DBus"),
+            QStringLiteral("NameOwnerChanged"),
+            this,
+            SLOT(serviceOwnerChanged(QString,QString,QString)));
+        QTimer::singleShot(0, this, &MprisController::refreshPlayers);
+    } else {
+        QDBusConnection::sessionBus().disconnect(
+            QStringLiteral("org.freedesktop.DBus"),
+            QStringLiteral("/org/freedesktop/DBus"),
+            QStringLiteral("org.freedesktop.DBus"),
+            QStringLiteral("NameOwnerChanged"),
+            this,
+            SLOT(serviceOwnerChanged(QString,QString,QString)));
+        clear();
+    }
 }
 
 void MprisController::playPause()
@@ -117,6 +135,9 @@ QString MprisController::timeText() const
 
 void MprisController::positionSeeked(qlonglong position)
 {
+    if (!m_enabled) {
+        return;
+    }
     m_positionUs = qMax<qint64>(0, position);
     if (m_durationUs > 0) {
         m_positionUs = qMin(m_positionUs, m_durationUs);
@@ -128,6 +149,9 @@ void MprisController::serviceOwnerChanged(const QString &name,
                                           const QString &,
                                           const QString &)
 {
+    if (!m_enabled) {
+        return;
+    }
     if (name.startsWith(QLatin1String(servicePrefix))) {
         refreshPlayers();
     }
@@ -137,6 +161,9 @@ void MprisController::propertiesChanged(const QString &interface,
                                         const QVariantMap &properties,
                                         const QStringList &)
 {
+    if (!m_enabled) {
+        return;
+    }
     if (interface != QLatin1String(playerInterface)) {
         return;
     }
@@ -164,6 +191,9 @@ QVariantMap MprisController::propertiesFor(const QString &service,
 
 void MprisController::refreshPlayers()
 {
+    if (!m_enabled) {
+        return;
+    }
     QDBusConnectionInterface *bus = QDBusConnection::sessionBus().interface();
     if (!bus) {
         clear();

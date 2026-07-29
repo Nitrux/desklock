@@ -1,9 +1,11 @@
 #include <QCommandLineOption>
 #include <QCommandLineParser>
+#include <QCursor>
 #include <QDebug>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
+#include <QFileSystemWatcher>
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
 #include <QQmlEngine>
@@ -13,6 +15,7 @@
 #include <QSaveFile>
 #include <QSettings>
 #include <QStandardPaths>
+#include <QTimer>
 
 #include <KLocalizedContext>
 #include <KLocalizedString>
@@ -126,41 +129,21 @@ int main(int argc, char *argv[])
     parser.addOption(configOption);
     parser.process(application);
 
-    const QString configPath = parser.value(configOption);
+    const QString configPath = QFileInfo(parser.value(configOption)).absoluteFilePath();
     qInfo() << "Using configuration" << configPath;
     if (!ensureConfigurationFile(configPath)) {
         qCritical() << "Unable to create Desklock configuration:" << configPath;
         return 1;
     }
 
-    const QSettings config(configPath, QSettings::IniFormat);
-    const QString backgroundPath = config.value(
-        QStringLiteral("Appearance/BackgroundImage"),
-        QStringLiteral("/usr/share/wallpapers/Aqua/contents/images/2560x1440.png")).toString();
-    const QString avatarOverride =
-        config.value(QStringLiteral("Appearance/AvatarImage")).toString();
-    const bool showBattery =
-        config.value(QStringLiteral("Battery/Enabled"), true).toBool();
-    const bool showSystemMonitor =
-        config.value(QStringLiteral("SystemMonitor/Enabled"), true).toBool();
-    const bool showMediaControls =
-        config.value(QStringLiteral("Media/Enabled"), true).toBool();
-
-    CurrentUser currentUser(avatarOverride);
+    CurrentUser currentUser;
     qInfo() << "Locking session for user" << currentUser.username()
             << "on" << QGuiApplication::screens().size() << "output(s)";
-    qInfo() << "Using avatar" << currentUser.avatarUrl();
     AuthBackend authentication(currentUser.username());
-    const int batteryUpdateInterval = qMax(1000, config.value(
-        QStringLiteral("Battery/UpdateInterval"), 30000).toInt());
-    const int systemMonitorUpdateInterval = qMax(1000, config.value(
-        QStringLiteral("SystemMonitor/UpdateInterval"), 3000).toInt());
-
-    SystemBattery battery(batteryUpdateInterval, showBattery);
-    SystemMonitor systemMonitor(systemMonitorUpdateInterval, showSystemMonitor);
-    MprisController mpris(showMediaControls);
+    SystemBattery battery(30000, false);
+    SystemMonitor systemMonitor(3000, false);
+    MprisController mpris(false);
     SessionLock sessionLock;
-
     ScreenRegistry screenRegistry;
 
     QQmlApplicationEngine engine;
@@ -171,41 +154,142 @@ int main(int argc, char *argv[])
     context->setContextProperty(QStringLiteral("Battery"), &battery);
     context->setContextProperty(QStringLiteral("SystemMonitor"), &systemMonitor);
     context->setContextProperty(QStringLiteral("Mpris"), &mpris);
-    context->setContextProperty(
-        QStringLiteral("ShowBattery"),
-        showBattery);
-    context->setContextProperty(
-        QStringLiteral("ShowSystemMonitor"),
-        showSystemMonitor);
-    context->setContextProperty(
-        QStringLiteral("ShowMediaControls"),
-        showMediaControls);
     context->setContextProperty(QStringLiteral("SessionLock"), &sessionLock);
     context->setContextProperty(QStringLiteral("ScreenRegistry"), &screenRegistry);
-    context->setContextProperty(QStringLiteral("BackgroundImage"), backgroundPath);
-    context->setContextProperty(
-        QStringLiteral("TimeFormat"),
-        config.value(QStringLiteral("Clock/TimeFormat"), QStringLiteral("hh:mm")).toString());
-    context->setContextProperty(
-        QStringLiteral("DateFormat"),
-        config.value(
+
+    bool configurationLoaded = false;
+    bool cursorHidden = false;
+    const auto applyConfiguration = [&]() -> bool {
+        QSettings config(configPath, QSettings::IniFormat);
+        config.sync();
+        if (config.status() != QSettings::NoError) {
+            qWarning() << "Unable to reload configuration" << configPath
+                       << "status" << config.status();
+            return false;
+        }
+
+        QString timeFormat = config.value(
+            QStringLiteral("Clock/TimeFormat"), QStringLiteral("hh:mm")).toString();
+        if (timeFormat.isEmpty()) {
+            timeFormat = QStringLiteral("hh:mm");
+        }
+        QString dateFormat = config.value(
             QStringLiteral("Clock/DateFormat"),
-            QStringLiteral("dddd, dd MMMM yyyy")).toString());
-    context->setContextProperty(
-        QStringLiteral("LowercaseDate"),
-        config.value(QStringLiteral("Clock/LowercaseDate"), false).toBool());
-    context->setContextProperty(
-        QStringLiteral("FadeInDuration"),
-        config.value(QStringLiteral("Behavior/FadeInDuration"), 350).toInt());
-    context->setContextProperty(
-        QStringLiteral("FadeOutDuration"),
-        config.value(QStringLiteral("Behavior/FadeOutDuration"), 250).toInt());
-    context->setContextProperty(
-        QStringLiteral("BackgroundBlurRadius"),
-        config.value(QStringLiteral("Appearance/BackgroundBlurRadius"), 64).toInt());
-    context->setContextProperty(
-        QStringLiteral("BackgroundOverlayOpacity"),
-        config.value(QStringLiteral("Appearance/BackgroundOverlayOpacity"), 0.76).toDouble());
+            QStringLiteral("dddd, dd MMMM yyyy")).toString();
+        if (dateFormat.isEmpty()) {
+            dateFormat = QStringLiteral("dddd, dd MMMM yyyy");
+        }
+
+        const bool showBattery =
+            config.value(QStringLiteral("Battery/Enabled"), true).toBool();
+        const bool showSystemMonitor =
+            config.value(QStringLiteral("SystemMonitor/Enabled"), true).toBool();
+        const bool showMediaControls =
+            config.value(QStringLiteral("Media/Enabled"), true).toBool();
+        const int batteryUpdateInterval = qMax(1000, config.value(
+            QStringLiteral("Battery/UpdateInterval"), 30000).toInt());
+        const int systemMonitorUpdateInterval = qMax(1000, config.value(
+            QStringLiteral("SystemMonitor/UpdateInterval"), 3000).toInt());
+        const bool fadeAnimationsEnabled = config.value(
+            QStringLiteral("Behavior/FadeAnimationsEnabled"), true).toBool();
+        const bool hideCursor = config.value(
+            QStringLiteral("Behavior/HideCursor"), true).toBool();
+
+        currentUser.setAvatarOverride(
+            config.value(QStringLiteral("Appearance/AvatarImage")).toString());
+        battery.setUpdateInterval(batteryUpdateInterval);
+        battery.setEnabled(showBattery);
+        systemMonitor.setUpdateInterval(systemMonitorUpdateInterval);
+        systemMonitor.setEnabled(showSystemMonitor);
+        mpris.setEnabled(showMediaControls);
+        if (hideCursor != cursorHidden) {
+            if (hideCursor) {
+                QGuiApplication::setOverrideCursor(QCursor(Qt::BlankCursor));
+            } else {
+                QGuiApplication::restoreOverrideCursor();
+            }
+            cursorHidden = hideCursor;
+        }
+
+        context->setContextProperty(QStringLiteral("ShowBattery"), showBattery);
+        context->setContextProperty(
+            QStringLiteral("ShowSystemMonitor"), showSystemMonitor);
+        context->setContextProperty(
+            QStringLiteral("ShowMediaControls"), showMediaControls);
+        context->setContextProperty(
+            QStringLiteral("BackgroundImage"),
+            config.value(
+                QStringLiteral("Appearance/BackgroundImage"),
+                QStringLiteral("/usr/share/wallpapers/Aqua/contents/images/2560x1440.png"))
+                .toString());
+        context->setContextProperty(QStringLiteral("TimeFormat"), timeFormat);
+        context->setContextProperty(QStringLiteral("DateFormat"), dateFormat);
+        context->setContextProperty(
+            QStringLiteral("LowercaseDate"),
+            config.value(QStringLiteral("Clock/LowercaseDate"), false).toBool());
+        context->setContextProperty(
+            QStringLiteral("FadeInDuration"),
+            fadeAnimationsEnabled
+                ? qMax(0, config.value(
+                    QStringLiteral("Behavior/FadeInDuration"), 350).toInt())
+                : 0);
+        context->setContextProperty(
+            QStringLiteral("FadeOutDuration"),
+            fadeAnimationsEnabled
+                ? qMax(0, config.value(
+                    QStringLiteral("Behavior/FadeOutDuration"), 250).toInt())
+                : 0);
+        context->setContextProperty(
+            QStringLiteral("BackgroundBlurRadius"),
+            qMax(0, config.value(
+                QStringLiteral("Appearance/BackgroundBlurRadius"), 64).toInt()));
+        context->setContextProperty(
+            QStringLiteral("BackgroundOverlayOpacity"),
+            qBound(0.0, config.value(
+                QStringLiteral("Appearance/BackgroundOverlayOpacity"), 0.76)
+                .toDouble(), 1.0));
+
+        qInfo() << (configurationLoaded
+            ? "Configuration reloaded" : "Configuration loaded") << configPath;
+        configurationLoaded = true;
+        return true;
+    };
+
+    if (!applyConfiguration()) {
+        qCritical() << "Unable to load Desklock configuration:" << configPath;
+        return 1;
+    }
+    qInfo() << "Using avatar" << currentUser.avatarUrl();
+
+    QFileSystemWatcher configWatcher;
+    const QString configDirectory = QFileInfo(configPath).absolutePath();
+    configWatcher.addPath(configDirectory);
+    configWatcher.addPath(configPath);
+
+    QTimer configReloadTimer;
+    configReloadTimer.setSingleShot(true);
+    configReloadTimer.setInterval(200);
+    const auto scheduleConfigurationReload = [&configReloadTimer](const QString &) {
+        configReloadTimer.start();
+    };
+    QObject::connect(
+        &configWatcher, &QFileSystemWatcher::fileChanged,
+        &application, scheduleConfigurationReload);
+    QObject::connect(
+        &configWatcher, &QFileSystemWatcher::directoryChanged,
+        &application, scheduleConfigurationReload);
+    QObject::connect(&configReloadTimer, &QTimer::timeout, &application, [&]() {
+        const QFileInfo configInfo(configPath);
+        if (!configInfo.isFile()) {
+            qWarning() << "Configuration file is temporarily unavailable; keeping current settings"
+                       << configPath;
+            return;
+        }
+        if (!configWatcher.files().contains(configPath)) {
+            configWatcher.addPath(configPath);
+        }
+        applyConfiguration();
+    });
 
     bool qmlValidationFailed = false;
     QObject::connect(

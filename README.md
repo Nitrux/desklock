@@ -19,6 +19,7 @@ Desklock runs natively on Wayland compositors such as Hyprland or Sway.
 - Native MPRIS discovery, metadata, album art, and playback controls over the session D-Bus.
 - MauiKit-native lock-screen controls.
 - Configurable fade-in/fade-out durations and clock formats.
+- Live reload of the user configuration, including appearance and monitor settings.
 
 ### Runtime Requirements
 

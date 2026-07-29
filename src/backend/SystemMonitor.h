@@ -28,6 +28,8 @@ public:
     QString transmitRateText() const;
     bool online() const { return !m_interfaceName.isEmpty(); }
     QString summary() const;
+    void setEnabled(bool enabled);
+    void setUpdateInterval(int updateInterval);
 
 signals:
     void changed();
@@ -40,7 +42,8 @@ private:
     void readNetwork();
 
     QTimer m_timer;
-    int m_updateInterval = 3000;
+    int m_updateInterval = 0;
+    bool m_enabled = false;
     quint64 m_previousCpuTotal = 0;
     quint64 m_previousCpuIdle = 0;
     quint64 m_previousReceive = 0;

@@ -16,10 +16,42 @@ QString readText(const QString &path)
 SystemBattery::SystemBattery(int updateInterval, bool enabled, QObject *parent)
     : QObject(parent)
 {
-    if (enabled) {
-        connect(&m_timer, &QTimer::timeout, this, &SystemBattery::refresh);
-        m_timer.start(qMax(1000, updateInterval));
+    connect(&m_timer, &QTimer::timeout, this, &SystemBattery::refresh);
+    setUpdateInterval(updateInterval);
+    setEnabled(enabled);
+}
+
+void SystemBattery::setEnabled(bool enabled)
+{
+    if (m_enabled == enabled) {
+        return;
+    }
+
+    m_enabled = enabled;
+    if (m_enabled) {
         refresh();
+        m_timer.start();
+    } else {
+        m_timer.stop();
+        if (m_available || !m_info.isEmpty()) {
+            m_available = false;
+            m_info.clear();
+            emit changed();
+        }
+    }
+}
+
+void SystemBattery::setUpdateInterval(int updateInterval)
+{
+    const int interval = qMax(1000, updateInterval);
+    if (m_updateInterval == interval) {
+        return;
+    }
+
+    m_updateInterval = interval;
+    m_timer.setInterval(m_updateInterval);
+    if (m_enabled) {
+        m_timer.start();
     }
 }
 

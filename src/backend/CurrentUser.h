@@ -9,8 +9,8 @@ class CurrentUser : public QObject
     Q_OBJECT
     Q_PROPERTY(QString username READ username CONSTANT)
     Q_PROPERTY(QString realName READ realName CONSTANT)
-    Q_PROPERTY(QString avatar READ avatar CONSTANT)
-    Q_PROPERTY(QUrl avatarUrl READ avatarUrl CONSTANT)
+    Q_PROPERTY(QString avatar READ avatar NOTIFY avatarChanged)
+    Q_PROPERTY(QUrl avatarUrl READ avatarUrl NOTIFY avatarChanged)
 
 public:
     explicit CurrentUser(const QString &avatarOverride = {}, QObject *parent = nullptr);
@@ -23,9 +23,14 @@ public:
         return m_avatar.startsWith(QStringLiteral("qrc:"))
             ? QUrl(m_avatar) : QUrl::fromLocalFile(m_avatar);
     }
+    void setAvatarOverride(const QString &avatarOverride);
+
+signals:
+    void avatarChanged();
 
 private:
     QString m_username;
     QString m_realName;
+    QString m_home;
     QString m_avatar;
 };
