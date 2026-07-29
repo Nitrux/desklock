@@ -51,7 +51,8 @@ $APT_COMMAND install -y --no-install-recommends \
     qt6-l10n-tools \
     qt6-svg-dev \
     qt6-wayland-dev \
-    qt6-wayland-private-dev
+    qt6-wayland-private-dev \
+    wayland-protocols
 
 
 # -- Add package from our repository.
