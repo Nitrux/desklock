@@ -47,16 +47,6 @@ rm -rf "$DESTDIR"
 DESTDIR="$DESTDIR" ninja -C .build install
 
 
-# -- Install configuration file.
-
-install -Dm644 "qmlgreet.conf" "$DESTDIR/etc/qmlgreet/qmlgreet.conf"
-
-
-# -- Install a default color scheme.
-
-install -Dm644 "QMLGreetDefault.colors" "$DESTDIR/usr/share/color-schemes/QMLGreetDefault.colors"
-
-
 # -- Create DEBIAN control file.
 
 mkdir -p "$DESTDIR/DEBIAN"
