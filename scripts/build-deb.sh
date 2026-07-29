@@ -51,11 +51,11 @@ DESTDIR="$DESTDIR" ninja -C .build install
 
 mkdir -p "$DESTDIR/DEBIAN"
 
-PKGNAME="greetd-qmlgreet"
+PKGNAME="desklock"
 VERSION="${PACKAGE_VERSION:-0.0.1}"
 MAINTAINER="uri_herrera@nxos.org"
 ARCHITECTURE="$(dpkg --print-architecture)"
-DESCRIPTION="QML-based greeter for greetd and wlr-based compositors."
+DESCRIPTION="Desklock is a native QML session locker for Wayland environments."
 
 cat > "$DESTDIR/DEBIAN/control" <<EOF
 Package: $PKGNAME
