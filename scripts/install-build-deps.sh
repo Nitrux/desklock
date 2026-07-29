@@ -37,19 +37,16 @@ $APT_COMMAND install -y --no-install-recommends \
     gnupg2 \
     libkf6i18n-dev \
     libpam0g-dev \
+    libwayland-bin \
     libwayland-dev \
     lintian \
     meson \
     ninja-build \
-    nlohmann-json3-dev \
     pkg-config \
-    qt6-5compat-dev \
     qt6-base-dev \
     qt6-base-private-dev \
     qt6-declarative-dev \
     qt6-declarative-dev-tools \
-    qt6-l10n-tools \
-    qt6-svg-dev \
     qt6-wayland-dev \
     qt6-wayland-private-dev \
     wayland-protocols
