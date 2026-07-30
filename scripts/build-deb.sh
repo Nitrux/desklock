@@ -65,7 +65,7 @@ Priority: optional
 Architecture: $ARCHITECTURE
 Maintainer: $MAINTAINER
 Description: $DESCRIPTION
-Depends: libkf6i18n6, libpam-runtime, libpam0g, libqt6core6t64, libqt6dbus6, libqt6gui6, libqt6opengl6, libqt6qml6, libqt6quick6, libqt6quickcontrols2-6, libqt6svg6, libqt6waylandclient6, libwayland-client0, mauikit (>= 4.0.4), procps, qml6-module-qtquick, qml6-module-qtquick-controls, qml6-module-qtquick-effects, qml6-module-qtquick-layouts, qt6-wayland
+Depends: libkf6i18n6, libpam-runtime, libpam0g, libqt6core6t64, libqt6dbus6, libqt6gui6, libqt6network6, libqt6opengl6, libqt6qml6, libqt6quick6, libqt6quickcontrols2-6, libqt6svg6, libqt6waylandclient6, libwayland-client0, mauikit (>= 4.0.4), procps, qml6-module-qtquick, qml6-module-qtquick-controls, qml6-module-qtquick-effects, qml6-module-qtquick-layouts, qt6-wayland
 EOF
 
 cd "$(dirname "$DESTDIR")"

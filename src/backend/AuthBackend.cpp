@@ -121,6 +121,9 @@ void AuthBackend::authenticate(const QString &password)
         if (result == PAM_SUCCESS) {
             result = pam_authenticate(handle, PAM_SILENT);
         }
+        if (result == PAM_SUCCESS) {
+            result = pam_acct_mgmt(handle, PAM_SILENT);
+        }
 
         QString message;
         if (result != PAM_SUCCESS) {

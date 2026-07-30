@@ -24,6 +24,7 @@ qt_deps = dependency(
         'Core',
         'DBus',
         'Gui',
+        'Network',
         'Qml',
         'Quick',
         'QuickControls2',

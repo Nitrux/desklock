@@ -1,9 +1,17 @@
 #pragma once
 
+#include <QByteArray>
+#include <QHash>
+#include <QNetworkAccessManager>
 #include <QObject>
+#include <QPointer>
 #include <QStringList>
+#include <QTemporaryDir>
 #include <QTimer>
 #include <QVariantMap>
+
+class QNetworkReply;
+class QUrl;
 
 class MprisController : public QObject
 {
@@ -57,10 +65,16 @@ private slots:
     void positionSeeked(qlonglong position);
 
 private:
-    QVariantMap propertiesFor(const QString &service, const QString &interface) const;
+    void scheduleRefresh();
     void refreshPlayers();
-    void selectPlayer(const QString &service);
+    void finishRefresh(quint64 generation);
+    void finishPlayerScan(quint64 generation);
+    void selectPlayer(const QString &service, const QVariantMap &playerProperties);
     void updateFromProperties(const QVariantMap &properties);
+    void updateArtwork(const QVariant &value);
+    void startArtworkRequest(const QUrl &url, quint64 generation, int redirects);
+    void cancelArtworkRequest();
+    QString cacheArtwork(const QByteArray &data);
     void clear();
     void callPlayer(const QString &method);
 
@@ -74,8 +88,25 @@ private:
     qint64 m_positionUs = 0;
     qint64 m_durationUs = 0;
     QTimer m_positionTimer;
+    QTimer m_refreshTimer;
+    QTimer m_artTimeoutTimer;
+    QNetworkAccessManager m_networkAccessManager;
+    QPointer<QNetworkReply> m_artReply;
+    QTemporaryDir m_artCacheDirectory;
+    QByteArray m_artDownload;
+    QString m_artMetadataUrl;
+    QStringList m_artCacheFiles;
+    quint64 m_artRequestGeneration = 0;
+    quint64 m_artCacheSequence = 0;
+    QStringList m_scanServices;
+    QHash<QString, QVariantMap> m_scanProperties;
+    int m_pendingPlayerQueries = 0;
+    quint64 m_refreshGeneration = 0;
+    quint64 m_selectionGeneration = 0;
     bool m_canGoNext = false;
     bool m_canGoPrevious = false;
     bool m_canControl = false;
     bool m_enabled = false;
+    bool m_refreshInProgress = false;
+    bool m_refreshQueued = false;
 };

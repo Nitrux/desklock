@@ -67,7 +67,6 @@ Item {
         for (var i = 0; i < lockWindows.length; ++i) {
             lockWindows[i].unlocking = true
         }
-        unlockTimer.start()
     }
 
     // Instantiate every MauiKit control before requesting the protocol lock.
@@ -92,14 +91,6 @@ Item {
     }
 
     Connections {
-        target: Authentication
-
-        function onAuthenticationSucceeded() {
-            applicationRoot.beginUnlock()
-        }
-    }
-
-    Connections {
         target: SessionLock
 
         function onSupportedChanged() {
@@ -111,13 +102,10 @@ Item {
         function onLockDenied() {
             Qt.quit()
         }
-    }
 
-    Timer {
-        id: unlockTimer
-        interval: Math.max(0, FadeOutDuration)
-        repeat: false
-        onTriggered: SessionLock.unlock()
+        function onUnlockAuthorized() {
+            applicationRoot.beginUnlock()
+        }
     }
 
     Component {

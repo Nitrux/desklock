@@ -14,6 +14,7 @@
 struct ext_session_lock_manager_v1;
 struct ext_session_lock_v1;
 struct ext_session_lock_surface_v1;
+class AuthBackend;
 
 namespace QtWaylandClient {
 class QWaylandShellIntegration;
@@ -31,7 +32,7 @@ class SessionLock : public QObject
     Q_PROPERTY(QString error READ error NOTIFY errorChanged)
 
 public:
-    explicit SessionLock(QObject *parent = nullptr);
+    explicit SessionLock(AuthBackend *authentication, QObject *parent = nullptr);
     ~SessionLock() override;
 
     bool supported() const { return m_lock != nullptr; }
@@ -39,16 +40,17 @@ public:
     QString error() const { return m_error; }
 
     bool initialize();
+    void setUnlockDelay(int milliseconds);
 
     Q_INVOKABLE bool attachWindow(QWindow *window, QScreen *screen);
     Q_INVOKABLE void detachWindow(QWindow *window);
-    Q_INVOKABLE void unlock();
 
 signals:
     void supportedChanged();
     void lockedChanged();
     void errorChanged();
     void lockDenied();
+    void unlockAuthorized();
     void unlocked();
 
 public:
@@ -83,6 +85,8 @@ private:
     friend class DesklockShellSurface;
 
     LockSurface *createSurface(QtWaylandClient::QWaylandWindow *window);
+    void authorizeUnlock();
+    void unlock();
     void setError(const QString &message);
     void destroySurface(LockSurface *surface);
     LockSurface *findSurface(QWindow *window);
@@ -99,4 +103,6 @@ private:
     bool m_shellIntegrationInitialized = false;
     bool m_locked = false;
     bool m_unlockPending = false;
+    bool m_unlockAuthorized = false;
+    int m_unlockDelay = 0;
 };

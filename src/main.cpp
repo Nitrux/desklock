@@ -143,7 +143,7 @@ int main(int argc, char *argv[])
     SystemBattery battery(30000, false);
     SystemMonitor systemMonitor(3000, false);
     MprisController mpris(false);
-    SessionLock sessionLock;
+    SessionLock sessionLock(&authentication);
     ScreenRegistry screenRegistry;
 
     QQmlApplicationEngine engine;
@@ -192,6 +192,14 @@ int main(int argc, char *argv[])
             QStringLiteral("SystemMonitor/UpdateInterval"), 3000).toInt());
         const bool fadeAnimationsEnabled = config.value(
             QStringLiteral("Behavior/FadeAnimationsEnabled"), true).toBool();
+        const int fadeInDuration = fadeAnimationsEnabled
+            ? qMax(0, config.value(
+                QStringLiteral("Behavior/FadeInDuration"), 350).toInt())
+            : 0;
+        const int fadeOutDuration = fadeAnimationsEnabled
+            ? qMax(0, config.value(
+                QStringLiteral("Behavior/FadeOutDuration"), 250).toInt())
+            : 0;
         const bool hideCursor = config.value(
             QStringLiteral("Behavior/HideCursor"), true).toBool();
 
@@ -202,6 +210,7 @@ int main(int argc, char *argv[])
         systemMonitor.setUpdateInterval(systemMonitorUpdateInterval);
         systemMonitor.setEnabled(showSystemMonitor);
         mpris.setEnabled(showMediaControls);
+        sessionLock.setUnlockDelay(fadeOutDuration);
         if (hideCursor != cursorHidden) {
             if (hideCursor) {
                 QGuiApplication::setOverrideCursor(QCursor(Qt::BlankCursor));
@@ -229,16 +238,10 @@ int main(int argc, char *argv[])
             config.value(QStringLiteral("Clock/LowercaseDate"), false).toBool());
         context->setContextProperty(
             QStringLiteral("FadeInDuration"),
-            fadeAnimationsEnabled
-                ? qMax(0, config.value(
-                    QStringLiteral("Behavior/FadeInDuration"), 350).toInt())
-                : 0);
+            fadeInDuration);
         context->setContextProperty(
             QStringLiteral("FadeOutDuration"),
-            fadeAnimationsEnabled
-                ? qMax(0, config.value(
-                    QStringLiteral("Behavior/FadeOutDuration"), 250).toInt())
-                : 0);
+            fadeOutDuration);
         context->setContextProperty(
             QStringLiteral("BackgroundBlurRadius"),
             qMax(0, config.value(

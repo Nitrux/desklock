@@ -1,10 +1,12 @@
 #include "SessionLock.h"
 
+#include "AuthBackend.h"
 #include "ext-session-lock-v1-client-protocol.h"
 
 #include <QCoreApplication>
 #include <QDebug>
 #include <QGuiApplication>
+#include <QTimer>
 
 #include <qpa/qplatformnativeinterface.h>
 
@@ -148,10 +150,15 @@ private:
     SessionLock *m_owner = nullptr;
 };
 
-SessionLock::SessionLock(QObject *parent)
+SessionLock::SessionLock(AuthBackend *authentication, QObject *parent)
     : QObject(parent)
     , m_shellIntegration(std::make_unique<DesklockShellIntegration>(this))
 {
+    Q_ASSERT(authentication);
+    connect(authentication,
+            &AuthBackend::authenticationSucceeded,
+            this,
+            &SessionLock::authorizeUnlock);
 }
 
 SessionLock::~SessionLock()
@@ -231,6 +238,11 @@ bool SessionLock::initialize()
     qInfo() << "Session lock requested";
     emit supportedChanged();
     return true;
+}
+
+void SessionLock::setUnlockDelay(int milliseconds)
+{
+    m_unlockDelay = qMax(0, milliseconds);
 }
 
 bool SessionLock::attachWindow(QWindow *window, QScreen *screen)
@@ -344,8 +356,24 @@ void SessionLock::detachWindow(QWindow *window)
     destroySurface(surface);
 }
 
+void SessionLock::authorizeUnlock()
+{
+    if (m_unlockAuthorized) {
+        return;
+    }
+
+    m_unlockAuthorized = true;
+    qInfo() << "PAM authentication authorized session unlock";
+    emit unlockAuthorized();
+    QTimer::singleShot(m_unlockDelay, this, &SessionLock::unlock);
+}
+
 void SessionLock::unlock()
 {
+    if (!m_unlockAuthorized) {
+        qCritical() << "Rejected session unlock without PAM authorization";
+        return;
+    }
     if (!m_lock) {
         qWarning() << "Ignoring unlock without an active lock object";
         return;
@@ -413,6 +441,9 @@ void SessionLock::lockFinished(void *data, ext_session_lock_v1 *lock)
                << self->m_locked;
 
     if (self->m_locked) {
+        // The compositor may finish a live lock after performing its own
+        // secure authentication. Permit the protocol-mandated teardown.
+        self->m_unlockAuthorized = true;
         self->unlock();
         return;
     }
