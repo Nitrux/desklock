@@ -72,7 +72,16 @@ void SystemBattery::refresh()
     if (available) {
         const QString capacity = readText(batteryPath + QStringLiteral("/capacity"));
         const QString status = readText(batteryPath + QStringLiteral("/status"));
-        info = tr("🔋 %1% (%2)").arg(capacity, status);
+        const int percent = capacity.toInt();
+        const QString level = percent < 10 ? QStringLiteral("caution")
+            : percent < 30 ? QStringLiteral("low")
+            : percent < 80 ? QStringLiteral("good") : QStringLiteral("full");
+        const bool charging = status == QStringLiteral("Charging")
+            || status == QStringLiteral("Full");
+        m_iconName = charging
+            ? QStringLiteral("battery-%1-charging").arg(level)
+            : QStringLiteral("battery-%1").arg(level);
+        info = tr("%1% (%2)").arg(capacity, status);
     }
 
     if (m_available != available || m_info != info) {

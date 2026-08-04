@@ -239,7 +239,7 @@ Item {
                             layer.enabled: image.status === Image.Ready
                             layer.effect: MultiEffect {
                                 autoPaddingEnabled: false
-                                blurEnabled: BackgroundBlurRadius > 0
+                                blurEnabled: BlurEnabled && BackgroundBlurRadius > 0
                                 blur: Math.min(1.0, BackgroundBlurRadius / 64.0)
                                 blurMax: Math.max(32, BackgroundBlurRadius)
                             }
@@ -262,6 +262,7 @@ Item {
                             spacing: 0
                             color: Maui.Theme.backgroundColor
                             opacity: BackgroundOverlayOpacity
+                            visible: OverlayEnabled
                             hoverEnabled: false
                         }
                     }
@@ -309,9 +310,35 @@ Item {
                     visible: ShowBattery && Battery.available
                     enabled: false
                     hoverEnabled: false
-                    text: Battery.info
                     color: Qt.rgba(0, 0, 0, 0.3)
                     label.font.weight: Font.Medium
+
+                    contentItem: RowLayout {
+                        spacing: Maui.Style.space.small
+
+                        Maui.Icon {
+                            Layout.preferredWidth: 16
+                            Layout.preferredHeight: 16
+                            source: Battery.iconName
+                            visible: IconMode !== "nerd"
+                        }
+
+                        Maui.IconLabel {
+                            Layout.preferredWidth: 16
+                            Layout.preferredHeight: 16
+                            display: ToolButton.TextOnly
+                            text: "\\uf240"
+                            font.family: "Symbols Nerd Font"
+                            font.pixelSize: 16
+                            visible: IconMode === "nerd"
+                        }
+
+                        Maui.IconLabel {
+                            display: ToolButton.TextOnly
+                            text: Battery.info
+                            font.weight: Font.Medium
+                        }
+                    }
                 }
             }
 
@@ -653,23 +680,43 @@ Item {
 
                 Repeater {
                     model: [
-                        qsTr("💻 CPU %1%").arg(SystemMonitor.cpuUsage.toFixed(0)),
-                        qsTr("🧠 RAM %1%").arg(SystemMonitor.memoryUsage.toFixed(0)),
-                        SystemMonitor.online
-                            ? qsTr("🌐 %1  ↓ %2/s  ↑ %3/s")
-                                .arg(SystemMonitor.interfaceName)
-                                .arg(SystemMonitor.receiveRateText)
-                                .arg(SystemMonitor.transmitRateText)
-                            : qsTr("🌐 Offline")
+                        { icon: "computer", glyph: "\\uf2db", text: qsTr("CPU %1%").arg(SystemMonitor.cpuUsage.toFixed(0)) },
+                        { icon: "memory", glyph: "\\uefc5", text: qsTr("RAM %1%").arg(SystemMonitor.memoryUsage.toFixed(0)) },
+                        { icon: SystemMonitor.online ? "network-wired" : "network-offline", glyph: "\\uf1eb", text: SystemMonitor.online
+                            ? qsTr("%1  ↓ %2/s  ↑ %3/s").arg(SystemMonitor.interfaceName).arg(SystemMonitor.receiveRateText).arg(SystemMonitor.transmitRateText)
+                            : qsTr("Offline") }
                     ]
 
                     delegate: Maui.Chip {
-                        required property string modelData
+                        required property var modelData
                         enabled: false
                         hoverEnabled: false
-                        text: modelData
                         color: Qt.rgba(0, 0, 0, 0.3)
                         label.font.weight: Font.Medium
+
+                        contentItem: RowLayout {
+                            spacing: Maui.Style.space.small
+                            Maui.Icon {
+                                Layout.preferredWidth: 16
+                                Layout.preferredHeight: 16
+                                source: modelData.icon
+                                visible: IconMode !== "nerd"
+                            }
+                            Maui.IconLabel {
+                                Layout.preferredWidth: 16
+                                Layout.preferredHeight: 16
+                                display: ToolButton.TextOnly
+                                text: modelData.glyph
+                                font.family: "Symbols Nerd Font"
+                                font.pixelSize: 16
+                                visible: IconMode === "nerd"
+                            }
+                            Maui.IconLabel {
+                                display: ToolButton.TextOnly
+                                text: modelData.text
+                                font.weight: Font.Medium
+                            }
+                        }
                     }
                 }
             }
@@ -677,4 +724,3 @@ Item {
         }
     }
 }
-

@@ -63,10 +63,10 @@ QString SystemMonitor::summary() const
     const QString cpu = locale.toString(m_cpuUsage, 'f', 0);
     const QString ram = locale.toString(m_memoryUsage);
     if (!online()) {
-        return tr("💻 CPU %1%  |  🧠 RAM %2%  |  🌐 Offline").arg(cpu, ram);
+        return tr("CPU %1%  |  RAM %2%  |  Offline").arg(cpu, ram);
     }
 
-    return tr("💻 CPU %1%  |  🧠 RAM %2%  |  🌐 %3: ↓ %4  |  ↑ %5")
+    return tr("CPU %1%  |  RAM %2%  |  %3: ↓ %4  |  ↑ %5")
         .arg(cpu,
              ram,
              m_interfaceName,

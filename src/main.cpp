@@ -186,20 +186,16 @@ int main(int argc, char *argv[])
             config.value(QStringLiteral("SystemMonitor/Enabled"), true).toBool();
         const bool showMediaControls =
             config.value(QStringLiteral("Media/Enabled"), true).toBool();
+        const QString iconMode = config.value(
+            QStringLiteral("Appearance/IconMode"), QStringLiteral("system"))
+            .toString().trimmed().toLower() == QStringLiteral("nerd")
+            ? QStringLiteral("nerd") : QStringLiteral("system");
         const int batteryUpdateInterval = qMax(1000, config.value(
             QStringLiteral("Battery/UpdateInterval"), 30000).toInt());
         const int systemMonitorUpdateInterval = qMax(1000, config.value(
             QStringLiteral("SystemMonitor/UpdateInterval"), 3000).toInt());
-        const bool fadeAnimationsEnabled = config.value(
-            QStringLiteral("Behavior/FadeAnimationsEnabled"), true).toBool();
-        const int fadeInDuration = fadeAnimationsEnabled
-            ? qMax(0, config.value(
-                QStringLiteral("Behavior/FadeInDuration"), 350).toInt())
-            : 0;
-        const int fadeOutDuration = fadeAnimationsEnabled
-            ? qMax(0, config.value(
-                QStringLiteral("Behavior/FadeOutDuration"), 250).toInt())
-            : 0;
+        constexpr int fadeInDuration = 350;
+        constexpr int fadeOutDuration = 250;
         const bool hideCursor = config.value(
             QStringLiteral("Behavior/HideCursor"), true).toBool();
 
@@ -221,6 +217,7 @@ int main(int argc, char *argv[])
         }
 
         context->setContextProperty(QStringLiteral("ShowBattery"), showBattery);
+        context->setContextProperty(QStringLiteral("IconMode"), iconMode);
         context->setContextProperty(
             QStringLiteral("ShowSystemMonitor"), showSystemMonitor);
         context->setContextProperty(
@@ -243,13 +240,19 @@ int main(int argc, char *argv[])
             QStringLiteral("FadeOutDuration"),
             fadeOutDuration);
         context->setContextProperty(
+            QStringLiteral("BlurEnabled"),
+            config.value(QStringLiteral("Appearance/BlurEnabled"), true).toBool());
+        context->setContextProperty(
+            QStringLiteral("OverlayEnabled"),
+            config.value(QStringLiteral("Appearance/OverlayEnabled"), true).toBool());
+        context->setContextProperty(
             QStringLiteral("BackgroundBlurRadius"),
             qMax(0, config.value(
                 QStringLiteral("Appearance/BackgroundBlurRadius"), 64).toInt()));
         context->setContextProperty(
             QStringLiteral("BackgroundOverlayOpacity"),
             qBound(0.0, config.value(
-                QStringLiteral("Appearance/BackgroundOverlayOpacity"), 0.76)
+                QStringLiteral("Appearance/OverlayOpacity"), 0.76)
                 .toDouble(), 1.0));
 
         qInfo() << (configurationLoaded
