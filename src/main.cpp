@@ -182,6 +182,8 @@ int main(int argc, char *argv[])
 
         const bool showBattery =
             config.value(QStringLiteral("Battery/Enabled"), true).toBool();
+        const bool debugBattery =
+            config.value(QStringLiteral("Debug/debugBattery"), false).toBool();
         const bool showSystemMonitor =
             config.value(QStringLiteral("SystemMonitor/Enabled"), true).toBool();
         const bool showMediaControls =
@@ -202,6 +204,7 @@ int main(int argc, char *argv[])
         currentUser.setAvatarOverride(
             config.value(QStringLiteral("Appearance/AvatarImage")).toString());
         battery.setUpdateInterval(batteryUpdateInterval);
+        battery.setDebugBattery(debugBattery);
         battery.setEnabled(showBattery);
         systemMonitor.setUpdateInterval(systemMonitorUpdateInterval);
         systemMonitor.setEnabled(showSystemMonitor);

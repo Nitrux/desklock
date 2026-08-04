@@ -1,6 +1,7 @@
 #include "SystemMonitor.h"
 
 #include <QDebug>
+#include <QDir>
 #include <QFile>
 #include <QHash>
 #include <QLocale>
@@ -206,6 +207,7 @@ void SystemMonitor::readNetwork()
     }
 
     QString selectedInterface;
+    QString selectedNetworkIcon = QStringLiteral("network-offline");
     quint64 selectedReceive = 0;
     quint64 selectedTransmit = 0;
     quint64 largestTraffic = 0;
@@ -258,7 +260,16 @@ void SystemMonitor::readNetwork()
         m_transmitRate = 0;
     }
 
+    if (!selectedInterface.isEmpty()) {
+        const QString wirelessPath = QStringLiteral("/sys/class/net/")
+            + selectedInterface + QStringLiteral("/wireless");
+        selectedNetworkIcon = QDir(wirelessPath).exists()
+            ? QStringLiteral("network-wireless")
+            : QStringLiteral("network-wired");
+    }
+
     m_interfaceName = selectedInterface;
+    m_networkIconName = selectedNetworkIcon;
     m_previousReceive = selectedReceive;
     m_previousTransmit = selectedTransmit;
 }

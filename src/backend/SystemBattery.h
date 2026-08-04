@@ -18,6 +18,7 @@ public:
     bool available() const { return m_available; }
     void setEnabled(bool enabled);
     void setUpdateInterval(int updateInterval);
+    void setDebugBattery(bool debugBattery);
 
 signals:
     void changed();
@@ -28,6 +29,8 @@ private:
     QTimer m_timer;
     QString m_info;
     QString m_iconName = QStringLiteral("battery-full");
+    bool m_debugBattery = false;
+    int m_debugState = 0;
     bool m_available = false;
     bool m_enabled = false;
     int m_updateInterval = 0;

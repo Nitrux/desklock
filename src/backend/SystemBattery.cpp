@@ -41,6 +41,20 @@ void SystemBattery::setEnabled(bool enabled)
     }
 }
 
+void SystemBattery::setDebugBattery(bool debugBattery)
+{
+    if (m_debugBattery == debugBattery) {
+        return;
+    }
+
+    m_debugBattery = debugBattery;
+    m_debugState = 0;
+    m_timer.setInterval(m_debugBattery ? 2000 : m_updateInterval);
+    if (m_enabled) {
+        refresh();
+    }
+}
+
 void SystemBattery::setUpdateInterval(int updateInterval)
 {
     const int interval = qMax(1000, updateInterval);
@@ -49,7 +63,7 @@ void SystemBattery::setUpdateInterval(int updateInterval)
     }
 
     m_updateInterval = interval;
-    m_timer.setInterval(m_updateInterval);
+    m_timer.setInterval(m_debugBattery ? 2000 : m_updateInterval);
     if (m_enabled) {
         m_timer.start();
     }
@@ -57,6 +71,25 @@ void SystemBattery::setUpdateInterval(int updateInterval)
 
 void SystemBattery::refresh()
 {
+    if (m_debugBattery) {
+        const int debugPercentages[] = { 0, 25, 50, 75, 100 };
+        const bool charging = m_debugState >= 5;
+        const int percent = debugPercentages[m_debugState % 5];
+        const QString status = charging ? QStringLiteral("Charging")
+                                        : QStringLiteral("Discharging");
+        const QString level = percent < 10 ? QStringLiteral("caution")
+            : percent < 30 ? QStringLiteral("low")
+            : percent < 80 ? QStringLiteral("good") : QStringLiteral("full");
+        m_info = tr("%1% (%2)").arg(percent).arg(status);
+        m_iconName = charging
+            ? QStringLiteral("battery-%1-charging").arg(level)
+            : QStringLiteral("battery-%1").arg(level);
+        m_available = true;
+        m_debugState = (m_debugState + 1) % 10;
+        emit changed();
+        return;
+    }
+
     QString batteryPath;
     const QDir supplies(QStringLiteral("/sys/class/power_supply"));
     for (const QString &entry : supplies.entryList(QDir::Dirs | QDir::NoDotAndDotDot)) {

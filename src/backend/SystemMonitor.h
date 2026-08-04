@@ -14,6 +14,7 @@ class SystemMonitor : public QObject
     Q_PROPERTY(QString receiveRateText READ receiveRateText NOTIFY changed)
     Q_PROPERTY(QString transmitRateText READ transmitRateText NOTIFY changed)
     Q_PROPERTY(bool online READ online NOTIFY changed)
+    Q_PROPERTY(QString networkIconName READ networkIconName NOTIFY changed)
     Q_PROPERTY(QString summary READ summary NOTIFY changed)
 
 public:
@@ -27,6 +28,7 @@ public:
     QString receiveRateText() const;
     QString transmitRateText() const;
     bool online() const { return !m_interfaceName.isEmpty(); }
+    QString networkIconName() const { return m_networkIconName; }
     QString summary() const;
     void setEnabled(bool enabled);
     void setUpdateInterval(int updateInterval);
@@ -53,4 +55,5 @@ private:
     double m_receiveRate = 0.0;
     double m_transmitRate = 0.0;
     QString m_interfaceName;
+    QString m_networkIconName = QStringLiteral("network-offline");
 };

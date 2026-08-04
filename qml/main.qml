@@ -312,8 +312,11 @@ Item {
                     hoverEnabled: false
                     color: Qt.rgba(0, 0, 0, 0.3)
                     label.font.weight: Font.Medium
+                    implicitWidth: batteryIndicatorRow.implicitWidth + Maui.Style.space.medium * 2
+                    implicitHeight: batteryIndicatorRow.implicitHeight + Maui.Style.space.small * 2
 
                     contentItem: RowLayout {
+                        id: batteryIndicatorRow
                         spacing: Maui.Style.space.small
 
                         Maui.Icon {
@@ -323,13 +326,13 @@ Item {
                             visible: IconMode !== "nerd"
                         }
 
-                        Maui.IconLabel {
+                        Label {
                             Layout.preferredWidth: 16
                             Layout.preferredHeight: 16
-                            display: ToolButton.TextOnly
-                            text: "\\uf240"
+                            text: "\uf240"
                             font.family: "Symbols Nerd Font"
                             font.pixelSize: 16
+                            textFormat: Text.PlainText
                             visible: IconMode === "nerd"
                         }
 
@@ -680,9 +683,9 @@ Item {
 
                 Repeater {
                     model: [
-                        { icon: "computer", glyph: "\\uf2db", text: qsTr("CPU %1%").arg(SystemMonitor.cpuUsage.toFixed(0)) },
-                        { icon: "memory", glyph: "\\uefc5", text: qsTr("RAM %1%").arg(SystemMonitor.memoryUsage.toFixed(0)) },
-                        { icon: SystemMonitor.online ? "network-wired" : "network-offline", glyph: "\\uf1eb", text: SystemMonitor.online
+                        { icon: "computer", glyph: "\uf2db", text: qsTr("CPU %1%").arg(SystemMonitor.cpuUsage.toFixed(0)) },
+                        { icon: "memory", glyph: "\uefc5", text: qsTr("RAM %1%").arg(SystemMonitor.memoryUsage.toFixed(0)) },
+                        { icon: SystemMonitor.networkIconName, glyph: SystemMonitor.networkIconName === "network-wired" ? "\uf0e8" : SystemMonitor.online ? "\uf1eb" : "\uf127", text: SystemMonitor.online
                             ? qsTr("%1  ↓ %2/s  ↑ %3/s").arg(SystemMonitor.interfaceName).arg(SystemMonitor.receiveRateText).arg(SystemMonitor.transmitRateText)
                             : qsTr("Offline") }
                     ]
@@ -693,8 +696,11 @@ Item {
                         hoverEnabled: false
                         color: Qt.rgba(0, 0, 0, 0.3)
                         label.font.weight: Font.Medium
+                        implicitWidth: indicatorRow.implicitWidth + Maui.Style.space.medium * 2
+                        implicitHeight: indicatorRow.implicitHeight + Maui.Style.space.small * 2
 
                         contentItem: RowLayout {
+                            id: indicatorRow
                             spacing: Maui.Style.space.small
                             Maui.Icon {
                                 Layout.preferredWidth: 16
@@ -702,13 +708,13 @@ Item {
                                 source: modelData.icon
                                 visible: IconMode !== "nerd"
                             }
-                            Maui.IconLabel {
+                            Label {
                                 Layout.preferredWidth: 16
                                 Layout.preferredHeight: 16
-                                display: ToolButton.TextOnly
                                 text: modelData.glyph
                                 font.family: "Symbols Nerd Font"
                                 font.pixelSize: 16
+                                textFormat: Text.PlainText
                                 visible: IconMode === "nerd"
                             }
                             Maui.IconLabel {
