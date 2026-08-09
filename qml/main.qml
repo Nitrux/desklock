@@ -683,7 +683,7 @@ Item {
 
                 Repeater {
                     model: [
-                        { icon: "computer", glyph: "\uf2db", text: qsTr("CPU %1%").arg(SystemMonitor.cpuUsage.toFixed(0)) },
+                        { icon: "cpu", glyph: "\uf2db", text: qsTr("CPU %1%").arg(SystemMonitor.cpuUsage.toFixed(0)) },
                         { icon: "memory", glyph: "\uefc5", text: qsTr("RAM %1%").arg(SystemMonitor.memoryUsage.toFixed(0)) },
                         { icon: SystemMonitor.networkIconName, glyph: SystemMonitor.networkIconName === "network-wired" ? "\uf0e8" : SystemMonitor.online ? "\uf1eb" : "\uf127", text: SystemMonitor.online
                             ? qsTr("%1  ↓ %2/s  ↑ %3/s").arg(SystemMonitor.interfaceName).arg(SystemMonitor.receiveRateText).arg(SystemMonitor.transmitRateText)
