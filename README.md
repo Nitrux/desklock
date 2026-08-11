@@ -17,7 +17,6 @@ Desklock runs natively on Wayland compositors such as Hyprland or Sway.
 - Direct Linux PAM authentication of the user running Desklock.
 - CPU, memory, and network monitors.
 - Native MPRIS discovery, metadata, album art, and playback controls over the session D-Bus.
-- MauiKit-native lock-screen controls.
 - Configurable fade-in/fade-out durations and clock formats.
 
 ### Runtime Requirements
