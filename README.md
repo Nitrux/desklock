@@ -2,6 +2,10 @@
 
 Desklock is a native QML session locker for Wayland environments.
 
+![Desklock](https://nxos.org/wp-content/uploads/2026/08/desklock_live.png)
+> Desklock, a native QML session locker for Wayland environments.
+
+
 # Introduction
 
 Desklock is a modern, lightweight lock screen designed for Nitrux. Built with **[MauiKit](https://mauikit.org/)** to deliver a polished, consistent user interface.
