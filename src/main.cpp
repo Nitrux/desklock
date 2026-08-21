@@ -229,7 +229,7 @@ int main(int argc, char *argv[])
             QStringLiteral("BackgroundImage"),
             config.value(
                 QStringLiteral("Appearance/BackgroundImage"),
-                QStringLiteral("/usr/share/wallpapers/Aqua/contents/images/2560x1440.png"))
+                QStringLiteral("/usr/share/wallpapers/Blossom/contents/images/4096x2304.png"))
                 .toString());
         context->setContextProperty(QStringLiteral("TimeFormat"), timeFormat);
         context->setContextProperty(QStringLiteral("DateFormat"), dateFormat);
