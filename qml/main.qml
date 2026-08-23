@@ -401,8 +401,7 @@ Item {
                         corners.topRightRadius: width / 2
                         corners.bottomLeftRadius: width / 2
                         corners.bottomRightRadius: width / 2
-                        opacity: avatarMouse.containsMouse
-                            || avatarImage.activeFocus ? 1 : 0
+                        opacity: avatarMouse.containsMouse ? 1 : 0
 
                         Behavior on opacity {
                             NumberAnimation {
