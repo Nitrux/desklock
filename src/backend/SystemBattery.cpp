@@ -3,8 +3,16 @@
 
 #include "SystemBattery.h"
 
+#include <QByteArray>
 #include <QDir>
 #include <QFile>
+#include <QSocketNotifier>
+
+#ifdef Q_OS_LINUX
+#include <linux/netlink.h>
+#include <sys/socket.h>
+#include <unistd.h>
+#endif
 
 namespace {
 QString readText(const QString &path)
@@ -24,6 +32,11 @@ SystemBattery::SystemBattery(int updateInterval, bool enabled, QObject *parent)
     setEnabled(enabled);
 }
 
+SystemBattery::~SystemBattery()
+{
+    stopPowerSupplyMonitor();
+}
+
 void SystemBattery::setEnabled(bool enabled)
 {
     if (m_enabled == enabled) {
@@ -32,9 +45,11 @@ void SystemBattery::setEnabled(bool enabled)
 
     m_enabled = enabled;
     if (m_enabled) {
+        startPowerSupplyMonitor();
         refresh();
         m_timer.start();
     } else {
+        stopPowerSupplyMonitor();
         m_timer.stop();
         if (m_available || !m_info.isEmpty()) {
             m_available = false;
@@ -42,6 +57,77 @@ void SystemBattery::setEnabled(bool enabled)
             emit changed();
         }
     }
+}
+
+void SystemBattery::handlePowerSupplyEvent()
+{
+#ifdef Q_OS_LINUX
+    if (!m_enabled || m_powerSupplySocket < 0) {
+        return;
+    }
+
+    bool powerSupplyChanged = false;
+    char buffer[4096];
+    while (true) {
+        const ssize_t length = ::recv(
+            m_powerSupplySocket, buffer, sizeof(buffer), MSG_DONTWAIT);
+        if (length <= 0) {
+            break;
+        }
+
+        const QByteArray event(buffer, static_cast<int>(length));
+        if (event.contains(QByteArrayLiteral("SUBSYSTEM=power_supply"))) {
+            powerSupplyChanged = true;
+        }
+    }
+
+    if (powerSupplyChanged && !m_debugBattery) {
+        refresh();
+    }
+#endif
+}
+
+void SystemBattery::startPowerSupplyMonitor()
+{
+#ifdef Q_OS_LINUX
+    if (m_powerSupplySocket >= 0) {
+        return;
+    }
+
+    const int socket = ::socket(
+        AF_NETLINK, SOCK_DGRAM | SOCK_CLOEXEC | SOCK_NONBLOCK, NETLINK_KOBJECT_UEVENT);
+    if (socket < 0) {
+        return;
+    }
+
+    sockaddr_nl address = {};
+    address.nl_family = AF_NETLINK;
+    address.nl_pid = static_cast<unsigned int>(::getpid());
+    address.nl_groups = 1;
+    if (::bind(socket, reinterpret_cast<sockaddr *>(&address), sizeof(address)) < 0) {
+        ::close(socket);
+        return;
+    }
+
+    m_powerSupplySocket = socket;
+    m_powerSupplyNotifier = new QSocketNotifier(
+        m_powerSupplySocket, QSocketNotifier::Read, this);
+    connect(m_powerSupplyNotifier, &QSocketNotifier::activated,
+            this, &SystemBattery::handlePowerSupplyEvent);
+#endif
+}
+
+void SystemBattery::stopPowerSupplyMonitor()
+{
+#ifdef Q_OS_LINUX
+    delete m_powerSupplyNotifier;
+    m_powerSupplyNotifier = nullptr;
+
+    if (m_powerSupplySocket >= 0) {
+        ::close(m_powerSupplySocket);
+        m_powerSupplySocket = -1;
+    }
+#endif
 }
 
 void SystemBattery::setDebugBattery(bool debugBattery)
@@ -105,6 +191,7 @@ void SystemBattery::refresh()
 
     const bool available = !batteryPath.isEmpty();
     QString info;
+    QString iconName = m_iconName;
     if (available) {
         const QString capacity = readText(batteryPath + QStringLiteral("/capacity"));
         const QString status = readText(batteryPath + QStringLiteral("/status"));
@@ -114,15 +201,16 @@ void SystemBattery::refresh()
             : percent < 80 ? QStringLiteral("good") : QStringLiteral("full");
         const bool charging = status == QStringLiteral("Charging")
             || status == QStringLiteral("Full");
-        m_iconName = charging
+        iconName = charging
             ? QStringLiteral("battery-%1-charging").arg(level)
             : QStringLiteral("battery-%1").arg(level);
         info = tr("%1% (%2)").arg(capacity, status);
     }
 
-    if (m_available != available || m_info != info) {
+    if (m_available != available || m_info != info || m_iconName != iconName) {
         m_available = available;
         m_info = info;
+        m_iconName = iconName;
         emit changed();
     }
 }

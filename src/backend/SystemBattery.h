@@ -6,6 +6,8 @@
 #include <QObject>
 #include <QTimer>
 
+class QSocketNotifier;
+
 class SystemBattery : public QObject
 {
     Q_OBJECT
@@ -15,6 +17,7 @@ class SystemBattery : public QObject
 
 public:
     explicit SystemBattery(int updateInterval = 30000, bool enabled = true, QObject *parent = nullptr);
+    ~SystemBattery() override;
 
     QString info() const { return m_info; }
     QString iconName() const { return m_iconName; }
@@ -27,9 +30,13 @@ signals:
     void changed();
 
 private:
+    void handlePowerSupplyEvent();
     void refresh();
+    void startPowerSupplyMonitor();
+    void stopPowerSupplyMonitor();
 
     QTimer m_timer;
+    QSocketNotifier *m_powerSupplyNotifier = nullptr;
     QString m_info;
     QString m_iconName = QStringLiteral("battery-full");
     bool m_debugBattery = false;
@@ -37,4 +44,5 @@ private:
     bool m_available = false;
     bool m_enabled = false;
     int m_updateInterval = 0;
+    int m_powerSupplySocket = -1;
 };
