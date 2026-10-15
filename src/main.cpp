@@ -20,7 +20,7 @@
 #include <QStandardPaths>
 #include <QTimer>
 
-#include <KLocalizedContext>
+#include <KLocalizedQmlContext>
 #include <KLocalizedString>
 
 #include <cstdio>
@@ -151,7 +151,7 @@ int main(int argc, char *argv[])
 
     QQmlApplicationEngine engine;
     QQmlContext *context = engine.rootContext();
-    context->setContextObject(new KLocalizedContext(&engine));
+    context->setContextObject(new KLocalizedQmlContext(&engine));
     context->setContextProperty(QStringLiteral("CurrentUser"), &currentUser);
     context->setContextProperty(QStringLiteral("Authentication"), &authentication);
     context->setContextProperty(QStringLiteral("Battery"), &battery);

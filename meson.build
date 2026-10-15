@@ -33,17 +33,22 @@ qt_deps = dependency(
     required: true,
 )
 
-kf6_i18n_dep = dependency('KF6I18n', version: '>=6.0', required: true, include_type: 'system')
+cpp_compiler = meson.get_compiler('cpp')
+if cpp_compiler.has_argument('-Wno-sfinae-incomplete')
+    add_project_arguments('-Wno-sfinae-incomplete', language: 'cpp')
+endif
+kf6_i18n_dep = declare_dependency(
+    include_directories: include_directories(get_option('prefix') / 'include' / 'KF6' / 'KI18n'),
+    dependencies: [cpp_compiler.find_library('KF6I18n'), cpp_compiler.find_library('KF6I18nQml')],
+)
 
 # MauiKit embeds its QML component files in the MauiKit4 shared library.
 # Keep it linked even when Desklock does not call a C++ symbol directly.
-mauikit_dep = dependency('MauiKit4', version: '>=4.0.4', required: true)
+mauikit_dep = dependency('MauiKit4', version: '>=4.0.5', required: true)
 mauikit_runtime_dep = declare_dependency(
     dependencies: mauikit_dep,
     link_args: ['-Wl,--no-as-needed'],
 )
-cpp_compiler = meson.get_compiler('cpp')
-
 pam_dep = dependency('pam', required: false)
 if not pam_dep.found()
     pam_dep = cpp_compiler.find_library('pam', required: false)

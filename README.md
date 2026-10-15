@@ -26,7 +26,7 @@ Desklock runs natively on Wayland compositors such as Hyprland or Sway.
 ### Runtime Requirements
 
 ```
-mauikit (>= 4.0.3)
+mauikit (>= 4.0.5)
 qt6 (>= 6.9.2)
 qt6-wayland (>= 6.9.2)
 greetd
