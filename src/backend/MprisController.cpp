@@ -174,7 +174,7 @@ MprisController::MprisController(bool enabled, QObject *parent)
             return;
         }
         m_positionUs = boundedPosition;
-        emit changed();
+        Q_EMIT changed();
     });
     setEnabled(enabled);
 }
@@ -252,7 +252,7 @@ void MprisController::positionSeeked(qlonglong position)
     if (m_durationUs > 0) {
         m_positionUs = qMin(m_positionUs, m_durationUs);
     }
-    emit changed();
+    Q_EMIT changed();
 }
 
 void MprisController::serviceOwnerChanged(const QString &name,
@@ -488,7 +488,7 @@ void MprisController::selectPlayer(const QString &service,
         }
         m_identity = boundedString(
             reply.value().value(QStringLiteral("Identity")));
-        emit changed();
+        Q_EMIT changed();
     });
 }
 
@@ -623,7 +623,7 @@ void MprisController::startArtworkRequest(const QUrl &url,
             return;
         }
         m_artUrl = cachedUrl;
-        emit changed();
+        Q_EMIT changed();
     });
 }
 
@@ -756,7 +756,7 @@ void MprisController::updateFromProperties(const QVariantMap &properties)
     } else {
         m_positionTimer.stop();
     }
-    emit changed();
+    Q_EMIT changed();
 }
 
 void MprisController::clear()
@@ -792,7 +792,7 @@ void MprisController::clear()
     m_canGoNext = false;
     m_canGoPrevious = false;
     m_canControl = false;
-    emit changed();
+    Q_EMIT changed();
 }
 
 void MprisController::callPlayer(const QString &method)

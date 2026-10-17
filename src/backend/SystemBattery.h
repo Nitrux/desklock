@@ -26,7 +26,7 @@ public:
     void setUpdateInterval(int updateInterval);
     void setDebugBattery(bool debugBattery);
 
-signals:
+Q_SIGNALS:
     void changed();
 
 private:

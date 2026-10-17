@@ -17,7 +17,7 @@ public:
 
     QVariantList screens() const;
 
-signals:
+Q_SIGNALS:
     void screensChanged();
     void screenAdded(QScreen *screen);
     void screenRemoved(QScreen *screen);

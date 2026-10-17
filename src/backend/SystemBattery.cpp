@@ -54,7 +54,7 @@ void SystemBattery::setEnabled(bool enabled)
         if (m_available || !m_info.isEmpty()) {
             m_available = false;
             m_info.clear();
-            emit changed();
+            Q_EMIT changed();
         }
     }
 }
@@ -175,7 +175,7 @@ void SystemBattery::refresh()
             : QStringLiteral("battery-%1").arg(level);
         m_available = true;
         m_debugState = (m_debugState + 1) % 10;
-        emit changed();
+        Q_EMIT changed();
         return;
     }
 
@@ -211,6 +211,6 @@ void SystemBattery::refresh()
         m_available = available;
         m_info = info;
         m_iconName = iconName;
-        emit changed();
+        Q_EMIT changed();
     }
 }

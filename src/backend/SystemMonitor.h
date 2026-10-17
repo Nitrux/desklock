@@ -36,7 +36,7 @@ public:
     void setEnabled(bool enabled);
     void setUpdateInterval(int updateInterval);
 
-signals:
+Q_SIGNALS:
     void changed();
     void memoryUsageChanged(int percent);
 

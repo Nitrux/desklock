@@ -6,7 +6,7 @@
 
 # -- Exit on errors.
 
-set -e
+set -euo pipefail
 
 
 # -- Check if running as root.
@@ -40,8 +40,6 @@ $APT_COMMAND install -y --no-install-recommends \
     libwayland-bin \
     libwayland-dev \
     lintian \
-    meson \
-    ninja-build \
     pkg-config \
     qt6-base-dev \
     qt6-multimedia-dev \

@@ -239,7 +239,7 @@ bool SessionLock::initialize()
 
     wl_display_flush(m_display);
     qInfo() << "Session lock requested";
-    emit supportedChanged();
+    Q_EMIT supportedChanged();
     return true;
 }
 
@@ -367,7 +367,7 @@ void SessionLock::authorizeUnlock()
 
     m_unlockAuthorized = true;
     qInfo() << "PAM authentication authorized session unlock";
-    emit unlockAuthorized();
+    Q_EMIT unlockAuthorized();
     QTimer::singleShot(m_unlockDelay, this, &SessionLock::unlock);
 }
 
@@ -390,9 +390,9 @@ void SessionLock::unlock()
     qInfo() << "Sending unlock_and_destroy";
     ext_session_lock_v1_unlock_and_destroy(m_lock);
     m_lock = nullptr;
-    emit supportedChanged();
+    Q_EMIT supportedChanged();
     m_locked = false;
-    emit lockedChanged();
+    Q_EMIT lockedChanged();
 
     while (!m_surfaces.isEmpty()) {
         destroySurface(m_surfaces.constLast());
@@ -430,7 +430,7 @@ void SessionLock::lockLocked(void *data, ext_session_lock_v1 *)
     auto *self = static_cast<SessionLock *>(data);
     self->m_locked = true;
     qInfo() << "Compositor confirmed the session is securely locked";
-    emit self->lockedChanged();
+    Q_EMIT self->lockedChanged();
     if (self->m_unlockPending) {
         self->m_unlockPending = false;
         self->unlock();
@@ -453,12 +453,12 @@ void SessionLock::lockFinished(void *data, ext_session_lock_v1 *lock)
 
     ext_session_lock_v1_destroy(lock);
     self->m_lock = nullptr;
-    emit self->supportedChanged();
+    Q_EMIT self->supportedChanged();
     while (!self->m_surfaces.isEmpty()) {
         self->destroySurface(self->m_surfaces.constLast());
     }
     self->setError(self->tr("The compositor refused the session lock"));
-    emit self->lockDenied();
+    Q_EMIT self->lockDenied();
 }
 
 void SessionLock::surfaceConfigure(void *data,
@@ -481,7 +481,7 @@ void SessionLock::syncDone(void *data, wl_callback *callback, uint32_t)
     wl_callback_destroy(callback);
     self->m_unlockSync = nullptr;
     qInfo() << "Compositor processed unlock; exiting";
-    emit self->unlocked();
+    Q_EMIT self->unlocked();
     QCoreApplication::quit();
 }
 
@@ -492,7 +492,7 @@ void SessionLock::setError(const QString &message)
     }
     m_error = message;
     qCritical().noquote() << message;
-    emit errorChanged();
+    Q_EMIT errorChanged();
 }
 
 void SessionLock::destroySurface(LockSurface *surface)

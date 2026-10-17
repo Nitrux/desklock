@@ -13,13 +13,13 @@ ScreenRegistry::ScreenRegistry(QObject *parent)
 {
     connect(qGuiApp, &QGuiApplication::screenAdded, this, [this](QScreen *screen) {
         qInfo() << "Output added:" << screen->name();
-        emit screensChanged();
-        emit screenAdded(screen);
+        Q_EMIT screensChanged();
+        Q_EMIT screenAdded(screen);
     });
     connect(qGuiApp, &QGuiApplication::screenRemoved, this, [this](QScreen *screen) {
         qInfo() << "Output removed:" << screen->name();
-        emit screenRemoved(screen);
-        emit screensChanged();
+        Q_EMIT screenRemoved(screen);
+        Q_EMIT screensChanged();
     });
 }
 

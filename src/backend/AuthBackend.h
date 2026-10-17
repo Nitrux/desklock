@@ -27,7 +27,7 @@ public:
     Q_INVOKABLE void authenticate(const QString &password);
     Q_INVOKABLE void reset();
 
-signals:
+Q_SIGNALS:
     void processingChanged();
     void errorChanged();
     void attemptsChanged();

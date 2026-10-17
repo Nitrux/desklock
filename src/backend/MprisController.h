@@ -55,10 +55,10 @@ public:
     Q_INVOKABLE void previous();
     void setEnabled(bool enabled);
 
-signals:
+Q_SIGNALS:
     void changed();
 
-private slots:
+private Q_SLOTS:
     void serviceOwnerChanged(const QString &name,
                              const QString &oldOwner,
                              const QString &newOwner);

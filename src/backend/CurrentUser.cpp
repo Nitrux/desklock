@@ -34,7 +34,8 @@ CurrentUser::CurrentUser(const QString &avatarOverride, QObject *parent)
         m_home = QDir::homePath();
     } else {
         m_username = QString::fromLocal8Bit(entry->pw_name);
-        m_realName = QString::fromLocal8Bit(entry->pw_gecos).section(',', 0, 0);
+        m_realName = QString::fromLocal8Bit(entry->pw_gecos)
+            .section(QLatin1Char(','), 0, 0);
         if (m_realName.isEmpty()) {
             m_realName = m_username;
         }
@@ -69,5 +70,5 @@ void CurrentUser::setAvatarOverride(const QString &avatarOverride)
         return;
     }
     m_avatar = avatar;
-    emit avatarChanged();
+    Q_EMIT avatarChanged();
 }

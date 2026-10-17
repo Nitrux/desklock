@@ -48,7 +48,7 @@ public:
     Q_INVOKABLE bool attachWindow(QWindow *window, QScreen *screen);
     Q_INVOKABLE void detachWindow(QWindow *window);
 
-signals:
+Q_SIGNALS:
     void supportedChanged();
     void lockedChanged();
     void errorChanged();

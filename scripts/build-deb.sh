@@ -6,7 +6,7 @@
 
 # -- Exit on errors.
 
-set -e
+set -euo pipefail
 
 
 # -- Prepare source.
@@ -22,18 +22,24 @@ cd "$BUILD_WORK_DIR"
 
 # -- Configure build.
 
-MESON_ARGS=(--prefix=/usr --buildtype=release)
+# MauiKit software MUST be built with CMake and ECM; NEVER use Meson.
+DEB_HOST_MULTIARCH="$(dpkg-architecture -qDEB_HOST_MULTIARCH)"
+CMAKE_ARGS=(
+    -DCMAKE_INSTALL_PREFIX=/usr
+    -DKDE_INSTALL_LIBDIR="lib/$DEB_HOST_MULTIARCH"
+    -DCMAKE_BUILD_TYPE=Release
+)
 
-if [ "$(uname -m)" = "x86_64" ]; then
-    MESON_ARGS+=("-Dcpp_args=-march=x86-64-v3")
+if [ "$(dpkg-architecture -qDEB_HOST_ARCH)" = "amd64" ]; then
+    CMAKE_ARGS+=(-DCMAKE_CXX_FLAGS=-march=x86-64-v3)
 fi
 
-meson setup .build "${MESON_ARGS[@]}"
+cmake -S . -B .build "${CMAKE_ARGS[@]}"
 
 
 # -- Compile source.
 
-ninja -C .build -k 0 -j "$(nproc)"
+cmake --build .build --parallel "$(nproc)"
 
 
 # -- Create a temporary DESTDIR for packaging.
@@ -44,7 +50,7 @@ rm -rf "$DESTDIR"
 
 # -- Install binary to DESTDIR.
 
-DESTDIR="$DESTDIR" ninja -C .build install
+DESTDIR="$DESTDIR" cmake --install .build
 
 
 # -- Create DEBIAN control file.
@@ -52,7 +58,7 @@ DESTDIR="$DESTDIR" ninja -C .build install
 mkdir -p "$DESTDIR/DEBIAN"
 
 PKGNAME="desklock"
-VERSION="${PACKAGE_VERSION:-0.0.1}"
+VERSION="${PACKAGE_VERSION:?PACKAGE_VERSION must be supplied by CI}"
 MAINTAINER="uri_herrera@nxos.org"
 ARCHITECTURE="$(dpkg --print-architecture)"
 DESCRIPTION="Desklock is a native QML session locker for Wayland environments."
@@ -81,4 +87,4 @@ mkdir -p "$TARGET_DIR"
 
 mv "${PKGNAME}_${VERSION}_${ARCHITECTURE}.deb" "$TARGET_DIR/"
 
-echo "Debian package created: $(pwd)/build/${PKGNAME}_${PACKAGE_VERSION}_${ARCHITECTURE}.deb"
+echo "Debian package created: $(pwd)/build/${PKGNAME}_${VERSION}_${ARCHITECTURE}.deb"

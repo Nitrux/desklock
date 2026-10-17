@@ -105,8 +105,8 @@ void AuthBackend::authenticate(const QString &password)
 
     qInfo() << "Starting PAM authentication attempt" << (m_attempts + 1);
     m_error.clear();
-    emit errorChanged();
-    emit processingChanged();
+    Q_EMIT errorChanged();
+    Q_EMIT processingChanged();
 
     if (m_worker.joinable()) {
         m_worker.join();
@@ -154,30 +154,30 @@ void AuthBackend::reset()
     }
     if (!m_error.isEmpty()) {
         m_error.clear();
-        emit errorChanged();
+        Q_EMIT errorChanged();
     }
     if (m_attempts != 0) {
         m_attempts = 0;
-        emit attemptsChanged();
+        Q_EMIT attemptsChanged();
     }
 }
 
 void AuthBackend::finishAuthentication(bool success, const QString &error)
 {
     m_processing.store(false);
-    emit processingChanged();
+    Q_EMIT processingChanged();
 
     if (success) {
         qInfo() << "PAM authentication succeeded";
         m_error.clear();
-        emit errorChanged();
-        emit authenticationSucceeded();
+        Q_EMIT errorChanged();
+        Q_EMIT authenticationSucceeded();
         return;
     }
 
     qWarning() << "PAM authentication failed:" << error;
     ++m_attempts;
-    emit attemptsChanged();
+    Q_EMIT attemptsChanged();
     m_error = error.isEmpty() ? tr("Authentication failed") : error;
-    emit errorChanged();
+    Q_EMIT errorChanged();
 }

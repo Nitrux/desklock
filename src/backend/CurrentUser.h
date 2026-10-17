@@ -28,7 +28,7 @@ public:
     }
     void setAvatarOverride(const QString &avatarOverride);
 
-signals:
+Q_SIGNALS:
     void avatarChanged();
 
 private:

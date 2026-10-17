@@ -83,7 +83,7 @@ void SystemMonitor::refresh()
     readCpu();
     readMemory();
     readNetwork();
-    emit changed();
+    Q_EMIT changed();
 }
 
 void SystemMonitor::readCpu()
@@ -146,7 +146,7 @@ void SystemMonitor::readMemory()
                         qBound(0, qRound((used / total) * 100.0), 100);
                     if (m_memoryUsage != percentage) {
                         m_memoryUsage = percentage;
-                        emit memoryUsageChanged(m_memoryUsage);
+                        Q_EMIT memoryUsageChanged(m_memoryUsage);
                     }
                     return;
                 }
@@ -198,7 +198,7 @@ void SystemMonitor::readMemory()
         100);
     if (m_memoryUsage != percentage) {
         m_memoryUsage = percentage;
-        emit memoryUsageChanged(m_memoryUsage);
+        Q_EMIT memoryUsageChanged(m_memoryUsage);
     }
 }
 
@@ -220,7 +220,7 @@ void SystemMonitor::readNetwork()
     input.readLine();
     while (!input.atEnd()) {
         const QString line = input.readLine().trimmed();
-        const qsizetype separator = line.indexOf(':');
+        const qsizetype separator = line.indexOf(QLatin1Char(':'));
         if (separator < 0) {
             continue;
         }
@@ -237,7 +237,7 @@ void SystemMonitor::readNetwork()
             }
         }
         const QStringList fields =
-            line.mid(separator + 1).simplified().split(' ');
+            line.mid(separator + 1).simplified().split(QLatin1Char(' '));
         if (fields.size() < 16) {
             continue;
         }
