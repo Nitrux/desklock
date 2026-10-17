@@ -35,6 +35,7 @@ $APT_COMMAND install -y --no-install-recommends \
     gettext \
     git \
     gnupg2 \
+    libkf6coreaddons-dev \
     libkf6i18n-dev \
     libpam0g-dev \
     libwayland-bin \
