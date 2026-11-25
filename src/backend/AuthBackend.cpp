@@ -9,14 +9,15 @@
 
 #include <security/pam_appl.h>
 
+#include <functional>
 #include <cstdlib>
 #include <cstring>
 #include <utility>
 
 namespace {
 struct ConversationData {
-    QByteArray username;
-    QByteArray password;
+    std::function<char *(const QString &, bool)> ask;
+    AuthBackend *backend;
 };
 
 void secureClear(QByteArray &value)
@@ -47,17 +48,9 @@ int pamConversation(int count,
     for (int i = 0; i < count; ++i) {
         switch (messages[i]->msg_style) {
         case PAM_PROMPT_ECHO_OFF:
-            result[i].resp = ::strdup(conversation->password.constData());
-            if (!result[i].resp) {
-                for (int j = 0; j < i; ++j) {
-                    std::free(result[j].resp);
-                }
-                std::free(result);
-                return PAM_BUF_ERR;
-            }
-            break;
         case PAM_PROMPT_ECHO_ON:
-            result[i].resp = ::strdup(conversation->username.constData());
+            result[i].resp = conversation->ask(QString::fromLocal8Bit(messages[i]->msg),
+                                               messages[i]->msg_style == PAM_PROMPT_ECHO_OFF);
             if (!result[i].resp) {
                 for (int j = 0; j < i; ++j) {
                     std::free(result[j].resp);
@@ -67,9 +60,16 @@ int pamConversation(int count,
             }
             break;
         case PAM_ERROR_MSG:
-        case PAM_TEXT_INFO:
+        case PAM_TEXT_INFO: {
+            const QString prompt = QString::fromLocal8Bit(messages[i]->msg);
+            QMetaObject::invokeMethod(
+                conversation->backend,
+                "setPrompt",
+                Qt::QueuedConnection,
+                Q_ARG(QString, prompt));
             result[i].resp = nullptr;
             break;
+        }
         default:
             for (int j = 0; j < i; ++j) {
                 std::free(result[j].resp);
@@ -92,12 +92,33 @@ AuthBackend::AuthBackend(const QString &username, QObject *parent)
 
 AuthBackend::~AuthBackend()
 {
+    cancel();
     if (m_worker.joinable()) {
         m_worker.join();
     }
 }
 
-void AuthBackend::authenticate(const QString &password)
+void AuthBackend::respond(const QString &answer)
+{
+    if (!m_needsInput || m_cancelled)
+        return;
+    m_needsInput = false;
+    Q_EMIT promptChanged();
+    std::lock_guard lock(m_mutex);
+    m_answer = answer.toUtf8();
+    m_answered = true;
+    m_ready.notify_one();
+}
+
+void AuthBackend::cancel()
+{
+    std::lock_guard lock(m_mutex);
+    m_cancelled = true;
+    m_needsInput = false;
+    m_ready.notify_one();
+}
+
+void AuthBackend::start()
 {
     if (m_processing.exchange(true)) {
         return;
@@ -106,6 +127,7 @@ void AuthBackend::authenticate(const QString &password)
     qInfo() << "Starting PAM authentication attempt" << (m_attempts + 1);
     m_error.clear();
     Q_EMIT errorChanged();
+    setPrompt(QString());
     Q_EMIT processingChanged();
 
     if (m_worker.joinable()) {
@@ -113,16 +135,32 @@ void AuthBackend::authenticate(const QString &password)
     }
 
     const QByteArray username = m_username.toLocal8Bit();
-    QByteArray secret = password.toUtf8();
+    m_cancelled = false;
 
-    m_worker = std::thread([this, username, secret = std::move(secret)]() mutable {
-        ConversationData conversation{username, std::move(secret)};
+    m_worker = std::thread([this, username]() {
+        auto ask = [this](const QString &prompt, bool secret) -> char * {
+            std::unique_lock lock(m_mutex);
+            m_answered = false;
+            QMetaObject::invokeMethod(this, [this, prompt, secret] {
+                if (!m_cancelled) {
+                    m_secret = secret;
+                    m_needsInput = true;
+                    m_prompt = prompt;
+                    Q_EMIT promptChanged();
+                }
+            }, Qt::QueuedConnection);
+            m_ready.wait(lock, [this] { return m_cancelled || m_answered; });
+            char *answer = m_cancelled ? nullptr : ::strdup(m_answer.constData());
+            secureClear(m_answer);
+            return answer;
+        };
+        ConversationData conversation{ask, this};
         pam_conv callback{pamConversation, &conversation};
         pam_handle_t *handle = nullptr;
 
         int result = pam_start("desklock", username.constData(), &callback, &handle);
         if (result == PAM_SUCCESS) {
-            result = pam_authenticate(handle, PAM_SILENT);
+            result = pam_authenticate(handle, PAM_DISALLOW_NULL_AUTHTOK);
         }
         if (result == PAM_SUCCESS) {
             result = pam_acct_mgmt(handle, PAM_SILENT);
@@ -134,7 +172,6 @@ void AuthBackend::authenticate(const QString &password)
             message = QString::fromLocal8Bit(pamMessage);
         }
 
-        secureClear(conversation.password);
         if (handle) {
             pam_end(handle, result);
         }
@@ -156,16 +193,30 @@ void AuthBackend::reset()
         m_error.clear();
         Q_EMIT errorChanged();
     }
+    setPrompt(QString());
     if (m_attempts != 0) {
         m_attempts = 0;
         Q_EMIT attemptsChanged();
     }
 }
 
+void AuthBackend::setPrompt(const QString &prompt)
+{
+    if (m_prompt == prompt) {
+        return;
+    }
+    m_prompt = prompt;
+    Q_EMIT promptChanged();
+}
+
 void AuthBackend::finishAuthentication(bool success, const QString &error)
 {
     m_processing.store(false);
     Q_EMIT processingChanged();
+    setPrompt(QString());
+
+    if (m_cancelled)
+        return;
 
     if (success) {
         qInfo() << "PAM authentication succeeded";

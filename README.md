@@ -18,10 +18,14 @@ Desklock runs natively on Wayland compositors such as Hyprland or Sway.
 ## Features
 
 - Secure lifecycle with one lock surface for every connected output.
-- Direct Linux PAM authentication of the user running Desklock.
+- Direct Linux PAM authentication of the user running Desklock, with password or PIN entry through an on-screen numeric keypad.
+- Fingerprint authentication prompts from the configured PAM stack, including `pam_fprintd` backed by libfprint.
 - CPU, memory, and network monitors.
 - Native MPRIS discovery, metadata, album art, and playback controls over the session D-Bus.
 - Configurable fade-in/fade-out durations and clock formats.
+
+> [!NOTE]
+> PIN acceptance and fingerprint authentication depend on the PAM modules configured for the `desklock` service.
 
 ### Runtime Requirements
 

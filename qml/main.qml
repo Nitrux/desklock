@@ -155,15 +155,32 @@ Item {
                 Authentication.reset()
                 passwordField.text = ""
                 applicationRoot.authenticationVisible = true
+                Authentication.start()
                 Qt.callLater(function() {
                     passwordField.forceActiveFocus()
                 })
             }
 
-            function cancelAuthentication() {
-                if (Authentication.processing) {
+            function submitCredential() {
+                if (!Authentication.needsInput || !passwordField.text.length) {
                     return
                 }
+                var credential = passwordField.text
+                passwordField.text = ""
+                Authentication.respond(credential)
+                credential = ""
+            }
+
+            function appendPinDigit(digit) {
+                if (!Authentication.needsInput) {
+                    return
+                }
+                passwordField.text += digit
+                passwordField.forceActiveFocus()
+            }
+
+            function cancelAuthentication() {
+                Authentication.cancel()
                 passwordField.text = ""
                 Authentication.reset()
                 applicationRoot.authenticationVisible = false
@@ -444,17 +461,23 @@ Item {
 
                 Maui.SectionHeader {
                     Layout.fillWidth: true
-                    text1: qsTr("Password")
-                    text2: qsTr("Enter your password to continue")
+                    text1: Authentication.prompt !== ""
+                        ? Authentication.prompt : qsTr("Password or PIN")
+                    text2: Authentication.needsInput ? qsTr("Enter your credential to continue") : ""
                 }
 
                 Maui.PasswordField {
                     id: passwordField
                     Layout.fillWidth: true
                     Layout.preferredHeight: Maui.Style.rowHeight
+                    visible: Authentication.needsInput
                     enabled: !lockWindow.unlocking
-                    readOnly: Authentication.processing
-                    echoMode: TextInput.Password
+                    readOnly: !Authentication.needsInput
+                    onVisibleChanged: {
+                        clear()
+                        if (visible) forceActiveFocus()
+                    }
+                    echoMode: Authentication.secret ? TextInput.Password : TextInput.Normal
                     passwordMaskDelay: 0
                     actions: []
                     icon.source: ""
@@ -478,11 +501,57 @@ Item {
                     }
 
                     onAccepted: {
-                        if (text.length > 0 && !Authentication.processing) {
-                            var submittedPassword = text
-                            text = ""
-                            Authentication.authenticate(submittedPassword)
-                            submittedPassword = ""
+                        lockWindow.submitCredential()
+                    }
+                }
+
+                GridLayout {
+                    Layout.fillWidth: true
+                    columns: 3
+                    rowSpacing: Maui.Style.space.small
+                    columnSpacing: Maui.Style.space.small
+                    visible: Authentication.needsInput && Authentication.secret
+
+                    Repeater {
+                        model: ["1", "2", "3", "4", "5", "6", "7", "8", "9"]
+
+                        Button {
+                            required property string modelData
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: Maui.Style.rowHeight
+                            enabled: Authentication.needsInput
+                            text: modelData
+                            onClicked: lockWindow.appendPinDigit(modelData)
+                        }
+                    }
+
+                    Button {
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: Maui.Style.rowHeight
+                        enabled: Authentication.needsInput
+                        text: qsTr("Clear")
+                        onClicked: {
+                            passwordField.clear()
+                            passwordField.forceActiveFocus()
+                        }
+                    }
+
+                    Button {
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: Maui.Style.rowHeight
+                        enabled: Authentication.needsInput
+                        text: "0"
+                        onClicked: lockWindow.appendPinDigit("0")
+                    }
+
+                    Button {
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: Maui.Style.rowHeight
+                        enabled: Authentication.needsInput
+                        text: qsTr("Delete")
+                        onClicked: {
+                            passwordField.text = passwordField.text.slice(0, -1)
+                            passwordField.forceActiveFocus()
                         }
                     }
                 }
@@ -490,7 +559,7 @@ Item {
                 Maui.Chip {
                     Layout.fillWidth: true
                     Layout.preferredHeight: 6
-                    visible: Authentication.processing
+                    visible: Authentication.processing && !Authentication.needsInput
                     enabled: false
                     hoverEnabled: false
                     Maui.Theme.colorSet: Maui.Theme.Window
@@ -529,11 +598,20 @@ Item {
                 }
 
                 Button {
+                    id: unlockButton
+                    Layout.alignment: Qt.AlignHCenter
+                    Layout.preferredHeight: Maui.Style.rowHeight
+                    visible: Authentication.needsInput || !Authentication.processing
+                    enabled: !Authentication.processing || passwordField.text.length > 0
+                    text: Authentication.processing ? qsTr("Unlock") : qsTr("Try again")
+                    onClicked: Authentication.processing ? lockWindow.submitCredential() : Authentication.start()
+                }
+
+                Button {
                     id: cancelButton
                     Layout.alignment: Qt.AlignHCenter
                     Layout.preferredWidth: 100
                     Layout.preferredHeight: Maui.Style.rowHeight
-                    enabled: !Authentication.processing
                     activeFocusOnTab: true
                     text: qsTr("Cancel")
                     KeyNavigation.tab: passwordField
