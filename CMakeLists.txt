@@ -86,6 +86,9 @@ add_executable(desklock
     "${SESSION_LOCK_PROTOCOL_C}"
     "${SESSION_LOCK_PROTOCOL_H}")
 
+set_source_files_properties("${SESSION_LOCK_PROTOCOL_C}" PROPERTIES
+    SKIP_PRECOMPILE_HEADERS ON)
+
 target_include_directories(desklock PRIVATE "${GENERATED_PROTOCOL_DIR}")
 target_link_options(desklock PRIVATE -Wl,--no-as-needed)
 target_link_libraries(desklock PRIVATE
