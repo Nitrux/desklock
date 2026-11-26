@@ -102,7 +102,9 @@ void AuthBackend::respond(const QString &answer)
 {
     if (!m_needsInput || m_cancelled)
         return;
+    m_verifying = true;
     m_needsInput = false;
+    m_prompt.clear();
     Q_EMIT promptChanged();
     std::lock_guard lock(m_mutex);
     m_answer = answer.toUtf8();
@@ -144,6 +146,7 @@ void AuthBackend::start()
             QMetaObject::invokeMethod(this, [this, prompt, secret] {
                 if (!m_cancelled) {
                     m_secret = secret;
+                    m_verifying = false;
                     m_needsInput = true;
                     m_prompt = prompt;
                     Q_EMIT promptChanged();
@@ -211,6 +214,8 @@ void AuthBackend::setPrompt(const QString &prompt)
 
 void AuthBackend::finishAuthentication(bool success, const QString &error)
 {
+    m_verifying = false;
+    Q_EMIT promptChanged();
     m_processing.store(false);
     Q_EMIT processingChanged();
     setPrompt(QString());

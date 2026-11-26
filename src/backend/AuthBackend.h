@@ -15,6 +15,7 @@
 class AuthBackend : public QObject
 {
     Q_OBJECT
+    Q_PROPERTY(bool verifying READ verifying NOTIFY promptChanged)
     Q_PROPERTY(bool processing READ processing NOTIFY processingChanged)
     Q_PROPERTY(QString error READ error NOTIFY errorChanged)
     Q_PROPERTY(QString prompt READ prompt NOTIFY promptChanged)
@@ -26,6 +27,7 @@ public:
     explicit AuthBackend(const QString &username, QObject *parent = nullptr);
     ~AuthBackend() override;
 
+    bool verifying() const { return m_verifying; }
     bool processing() const { return m_processing.load(); }
     QString error() const { return m_error; }
     bool needsInput() const { return m_needsInput; }
@@ -49,6 +51,7 @@ private:
     Q_SLOT void setPrompt(const QString &prompt);
     void finishAuthentication(bool success, const QString &error);
 
+    bool m_verifying = false;
     bool m_secret = true;
     bool m_needsInput = false;
     std::atomic_bool m_cancelled = false;
