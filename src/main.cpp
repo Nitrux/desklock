@@ -1,6 +1,10 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright 2026 Nitrux Latinoamericana S.C. <hello@nxos.org>
 
+#include <QDBusConnection>
+#include <QDBusMessage>
+#include <QDBusReply>
+#include <QDBusObjectPath>
 #include <QCommandLineOption>
 #include <QCommandLineParser>
 #include <QCursor>
@@ -105,6 +109,15 @@ bool ensureConfigurationFile(const QString &path)
 }
 }
 
+static bool fingerprintReaderAvailable()
+{
+    const auto request = QDBusMessage::createMethodCall(
+        QStringLiteral("net.reactivated.Fprint"), QStringLiteral("/net/reactivated/Fprint/Manager"),
+        QStringLiteral("net.reactivated.Fprint.Manager"), QStringLiteral("GetDefaultDevice"));
+    const QDBusReply<QDBusObjectPath> device = QDBusConnection::systemBus().call(request, QDBus::Block, 2000);
+    return device.isValid() && !device.value().path().isEmpty();
+}
+
 int main(int argc, char *argv[])
 {
     KLocalizedString::setApplicationDomain("desklock");
@@ -130,7 +143,12 @@ int main(int argc, char *argv[])
         QStringLiteral("path"),
         defaultConfigPath);
     parser.addOption(configOption);
+    const QCommandLineOption mockOption(QStringLiteral("mock"),
+        QStringLiteral("Preview the fingerprint, PIN and password flow in a window"));
+    parser.addOption(mockOption);
     parser.process(application);
+    const bool mock = parser.isSet(mockOption);
+    application.setQuitOnLastWindowClosed(mock);
 
     const QString configPath = QFileInfo(parser.value(configOption)).absoluteFilePath();
     qInfo() << "Using configuration" << configPath;
@@ -151,6 +169,8 @@ int main(int argc, char *argv[])
 
     QQmlApplicationEngine engine;
     QQmlContext *context = engine.rootContext();
+    context->setContextProperty(QStringLiteral("MockFingerprintReader"), mock && fingerprintReaderAvailable());
+    context->setContextProperty(QStringLiteral("MockMode"), mock);
     context->setContextObject(new KLocalizedQmlContext(&engine));
     context->setContextProperty(QStringLiteral("CurrentUser"), &currentUser);
     context->setContextProperty(QStringLiteral("Authentication"), &authentication);
@@ -351,6 +371,9 @@ int main(int argc, char *argv[])
         qCritical("Desklock did not request a session lock because not all output interfaces were created");
         return 2;
     }
+
+    if (mock)
+        return application.exec();
 
     qInfo("QML interface loaded; requesting the session lock");
     if (!sessionLock.initialize()) {
