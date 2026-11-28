@@ -549,7 +549,10 @@ Item {
                     Layout.fillWidth: true
                     readonly property bool scanInstruction: !auth.needsInput
                         && /^(please\s+)?(place|swipe|press|touch|scan)\b/i.test(auth.prompt.trim())
-                    text1: scanInstruction ? qsTr("Place your finger on the sensor.")
+                    readonly property bool fingerprintMismatch: !auth.needsInput
+                        && auth.prompt.trim() === "Failed to match fingerprint"
+                    text1: fingerprintMismatch ? qsTr("Fingerprint did not match.")
+                        : scanInstruction ? qsTr("Place your finger on the sensor.")
                         : auth.prompt
                     text2: auth.needsInput ? qsTr("Enter your credentials to continue.") : ""
                 }
