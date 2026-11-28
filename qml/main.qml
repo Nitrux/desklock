@@ -214,7 +214,7 @@ Item {
                 applicationRoot.authenticationVisible = true
                 auth.start()
                 Qt.callLater(function() {
-                    passwordField.forceActiveFocus()
+                    (pad.active ? pinField : passwordField).forceActiveFocus()
                 })
             }
 
@@ -254,7 +254,7 @@ Item {
                     contentOpacity = 1
                     Qt.callLater(function() {
                         if (applicationRoot.authenticationVisible) {
-                            passwordField.forceActiveFocus()
+                            (pad.active ? pinField : passwordField).forceActiveFocus()
                         } else {
                             avatarImage.forceActiveFocus()
                         }
@@ -598,6 +598,7 @@ Item {
                     Layout.fillWidth: true
                     Layout.preferredHeight: Maui.Style.rowHeight
                     visible: pad.active
+                    onVisibleChanged: if (visible) forceActiveFocus()
                     horizontalAlignment: TextInput.AlignHCenter
                     echoMode: TextInput.Password
                     passwordMaskDelay: 0
